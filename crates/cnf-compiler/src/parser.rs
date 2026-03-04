@@ -74,6 +74,74 @@ impl Parser {
         }
     }
 
+    fn parse_data_type(&mut self) -> Result<DataType, String> {
+        match self.current() {
+            Token::VideoMp4 => {
+                self.advance();
+                Ok(DataType::VideoMp4)
+            }
+            Token::ImageJpg => {
+                self.advance();
+                Ok(DataType::ImageJpg)
+            }
+            Token::FinancialDecimal => {
+                self.advance();
+                Ok(DataType::FinancialDecimal)
+            }
+            Token::AudioWav => {
+                self.advance();
+                Ok(DataType::AudioWav)
+            }
+            Token::CsvTable => {
+                self.advance();
+                Ok(DataType::CsvTable)
+            }
+            Token::BinaryBlob => {
+                self.advance();
+                Ok(DataType::BinaryBlob)
+            }
+            _ => Err(format!("Expected data type, got {}", self.current())),
+        }
+    }
+
+    fn expect_variable_or_type(&mut self) -> Result<String, String> {
+        match self.current() {
+            Token::Identifier(name) => {
+                let result = name.clone();
+                self.advance();
+                Ok(result)
+            }
+            Token::VideoMp4 => {
+                self.advance();
+                Ok("VIDEO-MP4".to_string())
+            }
+            Token::ImageJpg => {
+                self.advance();
+                Ok("IMAGE-JPG".to_string())
+            }
+            Token::FinancialDecimal => {
+                self.advance();
+                Ok("FINANCIAL-DECIMAL".to_string())
+            }
+            Token::AudioWav => {
+                self.advance();
+                Ok("AUDIO-WAV".to_string())
+            }
+            Token::CsvTable => {
+                self.advance();
+                Ok("CSV-TABLE".to_string())
+            }
+            Token::BinaryBlob => {
+                self.advance();
+                Ok("BINARY-BLOB".to_string())
+            }
+            _ => Err(format!(
+                "Expected variable name or type, got {}",
+                self.current()
+            )),
+        }
+    }
+
     fn parse_identification(&mut self) -> Result<IdentificationDivision, String> {
         self.expect_division(Token::IdentificationDiv, "IDENTIFICATION DIVISION")?;
         self.expect(Token::Division)?;
@@ -182,6 +250,18 @@ impl Parser {
                             self.advance();
                             DataType::FinancialDecimal
                         }
+                        Token::AudioWav => {
+                            self.advance();
+                            DataType::AudioWav
+                        }
+                        Token::CsvTable => {
+                            self.advance();
+                            DataType::CsvTable
+                        }
+                        Token::BinaryBlob => {
+                            self.advance();
+                            DataType::BinaryBlob
+                        }
                         _ => {
                             return Err(format!("Expected data type, got {}", self.current()));
                         }
@@ -194,6 +274,9 @@ impl Parser {
                         DataType::VideoMp4 => "VIDEO-MP4".to_string(),
                         DataType::ImageJpg => "IMAGE-JPG".to_string(),
                         DataType::FinancialDecimal => "FINANCIAL-DECIMAL".to_string(),
+                        DataType::AudioWav => "AUDIO-WAV".to_string(),
+                        DataType::CsvTable => "CSV-TABLE".to_string(),
+                        DataType::BinaryBlob => "BINARY-BLOB".to_string(),
                     };
 
                     variables.push(Variable { name, data_type });
@@ -224,15 +307,39 @@ impl Parser {
             let stmt = match self.current() {
                 Token::Compress => {
                     self.advance();
-                    let target = self.expect_identifier()?;
+                    let target = self.expect_variable_or_type()?;
                     self.expect(Token::Period)?;
                     ProcedureStatement::Compress { target }
                 }
                 Token::VerifyIntegrity => {
                     self.advance();
-                    let target = self.expect_identifier()?;
+                    let target = self.expect_variable_or_type()?;
                     self.expect(Token::Period)?;
                     ProcedureStatement::VerifyIntegrity { target }
+                }
+                Token::Transcode => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let output_type = self.parse_data_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Transcode {
+                        target,
+                        output_type,
+                    }
+                }
+                Token::Filter => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let condition = self.expect_identifier()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Filter { target, condition }
+                }
+                Token::Aggregate => {
+                    self.advance();
+                    let targets = vec![self.expect_variable_or_type()?];
+                    let operation = self.expect_identifier()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Aggregate { targets, operation }
                 }
                 Token::Eof => break,
                 _ => {

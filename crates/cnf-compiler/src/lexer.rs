@@ -25,11 +25,17 @@ pub enum Token {
     Output,
     Compress,
     VerifyIntegrity,
+    Transcode,
+    Filter,
+    Aggregate,
 
     // Data types
     VideoMp4,
     ImageJpg,
     FinancialDecimal,
+    AudioWav,
+    CsvTable,
+    BinaryBlob,
 
     // Literals and punctuation
     Identifier(String),
@@ -160,9 +166,15 @@ fn keyword_to_token(s: &str) -> Token {
         "OUTPUT" => Token::Output,
         "COMPRESS" => Token::Compress,
         "VERIFY-INTEGRITY" => Token::VerifyIntegrity,
+        "TRANSCODE" => Token::Transcode,
+        "FILTER" => Token::Filter,
+        "AGGREGATE" => Token::Aggregate,
         "VIDEO-MP4" => Token::VideoMp4,
         "IMAGE-JPG" => Token::ImageJpg,
         "FINANCIAL-DECIMAL" => Token::FinancialDecimal,
+        "AUDIO-WAV" => Token::AudioWav,
+        "CSV-TABLE" => Token::CsvTable,
+        "BINARY-BLOB" => Token::BinaryBlob,
         _ => Token::Identifier(s.to_string()),
     }
 }

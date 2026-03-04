@@ -8,8 +8,24 @@ use crate::ast::Program;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Instruction {
-    Compress { target: String },
-    VerifyIntegrity { target: String },
+    Compress {
+        target: String,
+    },
+    VerifyIntegrity {
+        target: String,
+    },
+    Transcode {
+        target: String,
+        output_type: String,
+    },
+    Filter {
+        target: String,
+        condition: String,
+    },
+    Aggregate {
+        targets: Vec<String>,
+        operation: String,
+    },
 }
 
 impl std::fmt::Display for Instruction {
@@ -20,6 +36,18 @@ impl std::fmt::Display for Instruction {
             }
             Instruction::VerifyIntegrity { target } => {
                 write!(f, "VERIFY-INTEGRITY({})", target)
+            }
+            Instruction::Transcode {
+                target,
+                output_type,
+            } => {
+                write!(f, "TRANSCODE({} -> {})", target, output_type)
+            }
+            Instruction::Filter { target, condition } => {
+                write!(f, "FILTER({} WHERE {})", target, condition)
+            }
+            Instruction::Aggregate { targets, operation } => {
+                write!(f, "AGGREGATE({} AS {})", targets.join(","), operation)
             }
         }
     }
@@ -58,6 +86,47 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                 }
                 instructions.push(Instruction::VerifyIntegrity {
                     target: target.clone(),
+                });
+            }
+            ProcedureStatement::Transcode {
+                target,
+                output_type,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                instructions.push(Instruction::Transcode {
+                    target: target.clone(),
+                    output_type: output_type.to_string(),
+                });
+            }
+            ProcedureStatement::Filter { target, condition } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                instructions.push(Instruction::Filter {
+                    target: target.clone(),
+                    condition: condition.clone(),
+                });
+            }
+            ProcedureStatement::Aggregate { targets, operation } => {
+                for target in targets {
+                    if !declared_vars.contains(target) {
+                        return Err(format!(
+                            "Variable '{}' not declared in DATA DIVISION",
+                            target
+                        ));
+                    }
+                }
+                instructions.push(Instruction::Aggregate {
+                    targets: targets.clone(),
+                    operation: operation.clone(),
                 });
             }
         }

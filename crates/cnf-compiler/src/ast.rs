@@ -42,6 +42,9 @@ pub enum DataType {
     VideoMp4,
     ImageJpg,
     FinancialDecimal,
+    AudioWav,
+    CsvTable,
+    BinaryBlob,
 }
 
 impl std::fmt::Display for DataType {
@@ -50,6 +53,9 @@ impl std::fmt::Display for DataType {
             DataType::VideoMp4 => write!(f, "VIDEO-MP4"),
             DataType::ImageJpg => write!(f, "IMAGE-JPG"),
             DataType::FinancialDecimal => write!(f, "FINANCIAL-DECIMAL"),
+            DataType::AudioWav => write!(f, "AUDIO-WAV"),
+            DataType::CsvTable => write!(f, "CSV-TABLE"),
+            DataType::BinaryBlob => write!(f, "BINARY-BLOB"),
         }
     }
 }
@@ -61,8 +67,24 @@ pub struct ProcedureDivision {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProcedureStatement {
-    Compress { target: String },
-    VerifyIntegrity { target: String },
+    Compress {
+        target: String,
+    },
+    VerifyIntegrity {
+        target: String,
+    },
+    Transcode {
+        target: String,
+        output_type: DataType,
+    },
+    Filter {
+        target: String,
+        condition: String,
+    },
+    Aggregate {
+        targets: Vec<String>,
+        operation: String,
+    },
 }
 
 pub enum Division {
