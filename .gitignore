@@ -1,0 +1,103 @@
+############################################################
+# CENTRA-NF — SUPER STRICT .gitignore
+# Scope: Compiler / DSL / Runtime (Rust workspace)
+############################################################
+
+########################
+# Rust / Cargo
+########################
+# Build outputs
+/target/
+**/target/
+
+# Incremental compilation & fingerprints
+**/.fingerprint/
+**/incremental/
+
+# Rust artifacts
+**/*.rlib
+**/*.rmeta
+**/*.d
+**/*.o
+**/*.a
+
+# Cargo temporary files
+.cargo/config.toml
+.cargo/registry/
+.cargo/git/
+
+########################
+# Test & Benchmark output
+########################
+**/criterion/
+**/benchmarks/output/
+**/coverage/
+**/*.profraw
+**/*.gcda
+**/*.gcno
+
+########################
+# Generated binaries & dumps
+########################
+**/*.exe
+**/*.bin
+**/*.out
+**/*.dump
+**/*.core
+
+########################
+# Logs & runtime artifacts
+########################
+**/*.log
+**/*.trace
+**/*.tmp
+**/*.cache
+**/*.pid
+
+########################
+# IDE / Editor (ABSOLUTE)
+########################
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*.bak
+*.old
+*.orig
+
+########################
+# Codespaces / Dev Containers
+########################
+.devcontainer/.env
+.devcontainer/*.log
+
+########################
+# OS / Shell noise
+########################
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+desktop.ini
+*.stackdump
+
+########################
+# Archives
+########################
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+############################################################
+# ⚠️ EXPLICITLY ALLOWED (DO NOT IGNORE)
+############################################################
+# Cargo.toml
+# Cargo.lock        ← MUST be committed (determinism)
+# crates/**/src/**
+# docs/**
+# examples/**/*.cnf
+# README.md
+# specification.md
+############################################################

@@ -1,0 +1,10 @@
+[package]
+name = "cnf-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+cnf-security = { path = "../cnf-security" }
+cobol-protocol-v153 = { path = "../cobol-protocol-v153" }

@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "crates/cnf-compiler",
+    "crates/cnf-runtime",
+    "crates/cnf-security",
+    "crates/cobol-protocol-v153",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["CENTRA-NF Dev Team"]
+license = "Proprietary"
