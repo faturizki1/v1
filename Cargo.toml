@@ -5,6 +5,7 @@ members = [
     "crates/cnf-security",
     "crates/cobol-protocol-v153",
     "crates/centra-nf-cli",
+    "crates/centra-nf-lsp",
 ]
 resolver = "2"
 
