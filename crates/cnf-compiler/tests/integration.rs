@@ -227,6 +227,52 @@ mod integration_tests {
         assert!(instrs.iter().any(|s| s.contains("ENCRYPT")));
         assert!(instrs.iter().any(|s| s.contains("DECRYPT")));
     }
+
+    #[test]
+    fn test_split_validate_extract_operations() {
+        let source = r#"
+            IDENTIFICATION DIVISION.
+                PROGRAM-ID. MiddleOpsTest.
+            ENVIRONMENT DIVISION.
+                OS "Linux".
+            DATA DIVISION.
+                INPUT CSV-TABLE.
+                INPUT JSON-OBJECT.
+            PROCEDURE DIVISION.
+                SPLIT CSV-TABLE 4.
+                VALIDATE CSV-TABLE csv-schema.
+                EXTRACT $.name JSON-OBJECT.
+        "#;
+        let result = compile(source);
+        assert!(result.is_ok());
+        let ir = result.unwrap();
+        let strs: Vec<String> = ir.iter().map(|i| i.to_string()).collect();
+        assert!(strs.iter().any(|s| s.contains("SPLIT")));
+        assert!(strs.iter().any(|s| s.contains("VALIDATE")));
+        assert!(strs.iter().any(|s| s.contains("EXTRACT")));
+    }
+
+    #[test]
+    fn test_aggregate_and_convert_operations() {
+        let source = r#"
+            IDENTIFICATION DIVISION.
+                PROGRAM-ID. AggConvertTest.
+            ENVIRONMENT DIVISION.
+                OS "Linux".
+            DATA DIVISION.
+                INPUT CSV-TABLE.
+                INPUT FINANCIAL-DECIMAL.
+            PROCEDURE DIVISION.
+                AGGREGATE CSV-TABLE sum.
+                CONVERT FINANCIAL-DECIMAL JSON-OBJECT.
+        "#;
+        let result = compile(source);
+        assert!(result.is_ok());
+        let ir = result.unwrap();
+        let strs: Vec<String> = ir.iter().map(|i| i.to_string()).collect();
+        assert!(strs.iter().any(|s| s.contains("AGGREGATE")));
+        assert!(strs.iter().any(|s| s.contains("CONVERT")));
+    }
     fn test_csv_table_data_type() {
         let source = r#"
             IDENTIFICATION DIVISION.

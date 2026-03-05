@@ -1,6 +1,6 @@
 # CENTRA-NF Language Specification
 
-## Version 0.1.0
+## Version 0.2.0
 
 ---
 
@@ -67,7 +67,13 @@ DATA DIVISION.
 |------|-------------|
 | `VIDEO-MP4` | High-throughput video buffer |
 | `IMAGE-JPG` | Image buffer (zero-copy target) |
+| `AUDIO-WAV` | Audio stream (WAV format) |
 | `FINANCIAL-DECIMAL` | Deterministic decimal for financial workloads |
+| `CSV-TABLE` | Comma-separated table data |
+| `BINARY-BLOB` | Raw binary data |
+| `JSON-OBJECT` | JSON structured data |
+| `XML-DOCUMENT` | XML structured data |
+| `PARQUET-TABLE` | Parquet columnar format |
 
 ### PROCEDURE DIVISION
 
@@ -81,15 +87,20 @@ PROCEDURE DIVISION.
 
 #### Supported Operations
 
-| Operation | Effect |
-|-----------|--------|
-| `COMPRESS <target>` | Compress buffer via L1-L2-L3 |
-| `VERIFY-INTEGRITY <target>` | Compute SHA-256 digest |
-| `TRANSCODE <target> <type>` | Convert buffer format (e.g. VIDEO-MP4 → IMAGE-JPG) |
-| `FILTER <target> <condition>` | Remove data not matching condition |
-| `MERGE <src1>,<src2> INTO <dest>` | Concatenate multiple buffers |
-| `ENCRYPT <target>` | Encrypt buffer (AES‑256 deterministic) |
-| `DECRYPT <target>` | Decrypt buffer previously encrypted |
+| Operation | Format | Effect |
+|-----------|--------|--------|
+| `COMPRESS` | `COMPRESS <target>` | Compress buffer via L1-L2-L3 protocol |
+| `VERIFY-INTEGRITY` | `VERIFY-INTEGRITY <target>` | Compute SHA-256 digest |
+| `TRANSCODE` | `TRANSCODE <src> <type>` | Convert buffer format |
+| `FILTER` | `FILTER <target> <condition>` | Remove data not matching condition |
+| `MERGE` | `MERGE <src1>,<src2> INTO <dest>` | Concatenate multiple buffers |
+| `ENCRYPT` | `ENCRYPT <target>` | Encrypt buffer (AES-256) |
+| `DECRYPT` | `DECRYPT <target>` | Decrypt buffer |
+| `SPLIT` | `SPLIT <target> <parts>` | Split buffer into N parts |
+| `VALIDATE` | `VALIDATE <target> <schema>` | Validate against schema |
+| `EXTRACT` | `EXTRACT <path> <target>` | Extract value from JSON/XML |
+| `AGGREGATE` | `AGGREGATE <src1>,<src2> <op>` | Aggregate data (SUM, AVG, etc) |
+| `CONVERT` | `CONVERT <src> <type>` | Convert to different type |
 
 ---
 

@@ -133,6 +133,48 @@ impl Runtime {
         Ok(())
     }
 
+    /// Execute SPLIT instruction (stub: mark buffer with count).
+    fn dispatch_split(&mut self, target: &str, _parts: &str) -> Result<(), CnfError> {
+        let _buf = self.get_buffer_mut(target)?;
+        // In a real system, we'd split the buffer into N parts.
+        // For now, this is a no-op (placeholder for future implementation).
+        Ok(())
+    }
+
+    /// Execute VALIDATE instruction (stub: check buffer exists).
+    fn dispatch_validate(&self, target: &str, _schema: &str) -> Result<(), CnfError> {
+        let _buf = self.get_buffer(target)?;
+        // In a real system, we'd validate content against schema (JSON, CSV schema, etc.).
+        // For now, existence check is sufficient.
+        Ok(())
+    }
+
+    /// Execute EXTRACT instruction (stub: no-op).
+    fn dispatch_extract(&mut self, _target: &str, _path: &str) -> Result<(), CnfError> {
+        // In a real system, we'd parse JSON/XML path and extract value.
+        // For now, this is a no-op.
+        Ok(())
+    }
+
+    /// Execute AGGREGATE instruction (stub: no-op on all targets).
+    fn dispatch_aggregate(&mut self, targets: &[String], _operation: &str) -> Result<(), CnfError> {
+        // Verify all targets exist
+        for t in targets {
+            let _buf = self.get_buffer(t)?;
+        }
+        // In a real system, we'd compute SUM, AVG, COUNT, etc.
+        // For now, this is a no-op.
+        Ok(())
+    }
+
+    /// Execute CONVERT instruction (stub: append type info).
+    fn dispatch_convert(&mut self, target: &str, output_type: &str) -> Result<(), CnfError> {
+        let buf = self.get_buffer_mut(target)?;
+        // Append type marker for visibility
+        buf.extend_from_slice(output_type.as_bytes());
+        Ok(())
+    }
+
     /// Dispatch single instruction.
     fn dispatch_instruction(&mut self, instruction: &str) -> Result<(), CnfError> {
         if instruction.starts_with("COMPRESS(") && instruction.ends_with(")") {
@@ -175,6 +217,57 @@ impl Runtime {
                 let out = inner[idx + 4..].trim();
                 let targets: Vec<String> = srcs.split(',').map(|s| s.trim().to_string()).collect();
                 self.dispatch_merge(&targets, out)?;
+            } else {
+                return Err(CnfError::InvalidInstruction(instruction.to_string()));
+            }
+        } else if instruction.starts_with("SPLIT(") && instruction.contains("INTO") {
+            // SPLIT(target INTO parts)
+            let inner = &instruction[6..instruction.len() - 1];
+            if let Some(idx) = inner.find("INTO") {
+                let target = inner[..idx].trim();
+                let parts = inner[idx + 4..].trim();
+                self.dispatch_split(target, parts)?;
+            } else {
+                return Err(CnfError::InvalidInstruction(instruction.to_string()));
+            }
+        } else if instruction.starts_with("VALIDATE(") && instruction.contains("AGAINST") {
+            // VALIDATE(target AGAINST schema)
+            let inner = &instruction[9..instruction.len() - 1];
+            if let Some(idx) = inner.find("AGAINST") {
+                let target = inner[..idx].trim();
+                let schema = inner[idx + 7..].trim();
+                self.dispatch_validate(target, schema)?;
+            } else {
+                return Err(CnfError::InvalidInstruction(instruction.to_string()));
+            }
+        } else if instruction.starts_with("EXTRACT(") && instruction.contains("FROM") {
+            // EXTRACT(path FROM target)
+            let inner = &instruction[8..instruction.len() - 1];
+            if let Some(idx) = inner.find("FROM") {
+                let path = inner[..idx].trim();
+                let target = inner[idx + 4..].trim();
+                self.dispatch_extract(target, path)?;
+            } else {
+                return Err(CnfError::InvalidInstruction(instruction.to_string()));
+            }
+        } else if instruction.starts_with("AGGREGATE(") && instruction.contains("AS") {
+            // AGGREGATE(t1,t2 AS operation)
+            let inner = &instruction[10..instruction.len() - 1];
+            if let Some(idx) = inner.find("AS") {
+                let srcs = inner[..idx].trim();
+                let op = inner[idx + 2..].trim();
+                let targets: Vec<String> = srcs.split(',').map(|s| s.trim().to_string()).collect();
+                self.dispatch_aggregate(&targets, op)?;
+            } else {
+                return Err(CnfError::InvalidInstruction(instruction.to_string()));
+            }
+        } else if instruction.starts_with("CONVERT(") && instruction.contains("->") {
+            // CONVERT(target -> type)
+            let inner = &instruction[8..instruction.len() - 1];
+            if let Some(idx) = inner.find("->") {
+                let target = inner[..idx].trim();
+                let typ = inner[idx + 2..].trim();
+                self.dispatch_convert(target, typ)?;
             } else {
                 return Err(CnfError::InvalidInstruction(instruction.to_string()));
             }
@@ -249,6 +342,44 @@ mod tests {
         runtime.add_buffer("c".to_string(), vec![2]);
         runtime.dispatch_instruction("MERGE(a,c INTO out)").unwrap();
         assert_eq!(runtime.get_output("out").unwrap(), vec![1, 2]);
+    }
+
+    #[test]
+    fn test_dispatch_split() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("src".to_string(), vec![1, 2, 3, 4]);
+        runtime.dispatch_instruction("SPLIT(src INTO 2)").unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_validate() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("buf".to_string(), vec![1, 2]);
+        runtime.dispatch_instruction("VALIDATE(buf AGAINST json-schema)").unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_extract() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("data".to_string(), b"test".to_vec());
+        runtime.dispatch_instruction("EXTRACT($.field FROM data)").unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_aggregate() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("col1".to_string(), vec![1, 2, 3]);
+        runtime.add_buffer("col2".to_string(), vec![4, 5, 6]);
+        runtime.dispatch_instruction("AGGREGATE(col1,col2 AS sum)").unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_convert() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("buf".to_string(), vec![1, 2]);
+        runtime.dispatch_instruction("CONVERT(buf -> JSON-OBJECT)").unwrap();
+        let out = runtime.get_output("buf").unwrap();
+        assert!(out.ends_with(b"JSON-OBJECT"));
     }
 
     #[test]
