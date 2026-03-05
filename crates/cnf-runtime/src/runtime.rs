@@ -23,6 +23,8 @@ impl std::fmt::Display for CnfError {
             CnfError::CompressionFailed(msg) => write!(f, "Compression failed: {}", msg),
             CnfError::VerificationFailed(msg) => write!(f, "Verification failed: {}", msg),
             CnfError::InvalidInstruction(msg) => write!(f, "Invalid instruction: {}", msg),
+            CnfError::EncryptionFailed(msg) => write!(f, "Encryption failed: {}", msg),
+            CnfError::DecryptionFailed(msg) => write!(f, "Decryption failed: {}", msg),
         }
     }
 }

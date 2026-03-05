@@ -18,7 +18,7 @@ pub mod scheduler;
 
 pub use runtime::{CnfError, Runtime};
 
-use crate::runtime::Runtime;
+// use crate::runtime::Runtime;
 use cnf_compiler::ir::Instruction;
 
 /// Execute a sequence of instructions using the runtime.

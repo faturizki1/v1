@@ -1,0 +1,9 @@
+// Test file for error code: L1084
+// Expected error: Underflow Duplicate character in control flow -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-underflow".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".

@@ -1,0 +1,603 @@
+# CENTRA-NF Error Code Master Registry
+# 
+# Single source of truth for all error codes, test cases, and documentation
+# Format: YAML with structured error definitions
+# Version: 0.1.0
+# Last Updated: 2026-03-05
+
+# Metadata
+metadata:
+  title: "CENTRA-NF Error Code Master Registry"
+  description: "Centralized error code repository for CENTRA-NF compiler"
+  format_version: "1.0"
+  max_errors: 5000
+  current_count: 100  # Will be updated as we add more
+  layers:
+    1: "Lexer"
+    2: "Parser"
+    3: "IR"
+    4: "Runtime"
+    5: "Security"
+    6: "Protocol"
+    7: "CLI"
+    8: "LSP"
+
+# Error Registry - organized by layer
+errors:
+  # ============================================================================
+  # Layer 1: Lexer Errors (L1001 - L1999)
+  # ============================================================================
+  - code: "L1001"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Invalid character in source"
+    description: "Lexer encountered invalid character that is not part of CENTRA-NF alphabet"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "test™invalid".
+      ENVIRONMENT DIVISION.
+          OS "invalid™utf8-chars".
+    expected_error: "Invalid character '™' at line 1"
+    fix: "Use only ASCII alphanumeric characters, hyphens, underscores, and spaces in identifiers"
+    
+  - code: "L1002"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Unterminated string literal"
+    description: "String literal not closed with ending quote"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "unclosed-string.
+      ENVIRONMENT DIVISION.
+          OS "Linux".
+    expected_error: "Unterminated string starting at line 2"
+    fix: "Add closing quote (\") to complete string literal"
+    
+  - code: "L1003"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Invalid number format"
+    description: "Number literal does not follow valid integer or decimal format"
+    trigger_code: |
+      DATA DIVISION.
+          FINANCIAL-DECIMAL amount 12.34.56.
+    expected_error: "Invalid number format '12.34.56'"
+    fix: "Use valid number format: integers (123) or decimals (123.45), not multiple dots"
+    
+  - code: "L1004"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Identifier too long"
+    description: "Identifier exceeds maximum length of 30 characters"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB VERY_LONG_IDENTIFIER_THAT_EXCEEDS_THIRTY_CHARS.
+    expected_error: "Identifier 'VERY_LONG_IDENTIFIER_THAT_EXCEEDS_THIRTY_CHARS' exceeds 30 characters"
+    fix: "Shorten identifier to 30 characters or fewer"
+    
+  - code: "L1005"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Mixed case in keyword"
+    description: "COBOL keywords must be uppercase throughout"
+    trigger_code: |
+      identification DIVISION.
+          program "test".
+    expected_error: "Keyword 'identification' must be uppercase: 'IDENTIFICATION'"
+    fix: "Convert all keywords to uppercase"
+    
+  - code: "L1006"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Invalid escape sequence in string"
+    description: "String contains unsupported escape sequence"
+    trigger_code: |
+      ENVIRONMENT DIVISION.
+          OS "path\invalid\sequence".
+    expected_error: "Invalid escape sequence '\\i'"
+    fix: "Use valid escape sequences or ensure backslash is properly escaped as \\\\"
+    
+  - code: "L1007"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Line too long"
+    description: "Source line exceeds standard line length (80-120 characters)"
+    trigger_code: |
+      IDENTIFICATION DIVISION. PROGRAM "test". ENVIRONMENT DIVISION. OS "Linux". DATA DIVISION. BINARY-BLOB data. PROCEDURE DIVISION. COMPRESS data.
+    expected_error: "Line 1 exceeds maximum length of 120 characters"
+    fix: "Break long lines into multiple shorter lines"
+    
+  - code: "L1008"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Tab character in indentation"
+    description: "Lexer found tab character; CENTRA-NF requires spaces for indentation"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+      	PROGRAM "test".
+    expected_error: "Tab character not allowed at line 2; use spaces for indentation"
+    fix: "Replace tab characters with spaces (standard: 4 spaces per indent level)"
+    
+  - code: "L1009"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Unicode character in identifier"
+    description: "Identifiers must contain only ASCII characters"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB café.
+    expected_error: "Unicode character 'é' not allowed in identifier"
+    fix: "Use ASCII-only identifiers; replace accented characters with ASCII equivalents"
+    
+  - code: "L1010"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Reserved keyword used as identifier"
+    description: "Cannot use CENTRA-NF keywords as variable or program names"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "COMPRESS".
+    expected_error: "Cannot use keyword 'COMPRESS' as identifier"
+    fix: "Choose different name for identifier"
+    
+  - code: "L1011"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Encoding"
+    title: "Non-UTF8 encoding detected"
+    description: "Source file is not encoded in UTF-8"
+    trigger_code: |
+      # File saved as Latin-1 instead of UTF-8
+      IDENTIFICATION DIVISION.
+    expected_error: "File not encoded in UTF-8; detected encoding: Latin-1"
+    fix: "Convert source file to UTF-8 encoding before processing"
+    
+  - code: "L1012"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Indentation"
+    title: "Invalid indentation level"
+    description: "Indentation should increase/decrease by exactly 4 spaces per level"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+        PROGRAM "test".
+    expected_error: "Invalid indentation: expected 4-space increment, got 2"
+    fix: "Use 4 spaces per indentation level consistently"
+    
+  - code: "L1013"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Control character in string"
+    description: "String contains control character not allowed in source"
+    trigger_code: |
+      ENVIRONMENT DIVISION.
+          OS "hello\nworld".
+    expected_error: "Control character (ASCII 10) not allowed in string literal"
+    fix: "Use string without control characters, or use escape sequences where supported"
+    
+  - code: "L1014"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Unexpected EOF in block"
+    description: "Lexer reached end of file while inside an incomplete block"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "test".
+      ENVIRONMENT DIVISION.
+          OS "Linux".
+      DATA DIVISION.
+    expected_error: "Unexpected EOF in DATA DIVISION; expected data type definition"
+    fix: "Complete the incomplete block or add missing code before end of file"
+    
+  - code: "L1015"
+    layer: 1
+    layer_name: "Lexer"
+    category: "Syntax"
+    title: "Empty identifier"
+    description: "Expected identifier but found nothing"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB .
+    expected_error: "Expected identifier, but found '.'"
+    fix: "Provide a variable name after data type declaration"
+
+  # ============================================================================
+  # Layer 2: Parser Errors (P2001 - P2999)
+  # ============================================================================
+  - code: "P2001"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Division order violation"
+    description: "Divisions must appear in strict order: IDENTIFICATION → ENVIRONMENT → DATA → PROCEDURE"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      IDENTIFICATION DIVISION.
+          PROGRAM "test".
+    expected_error: "Division order error: IDENTIFICATION DIVISION must come before DATA DIVISION"
+    fix: "Reorder divisions according to CENTRA-NF specification"
+    
+  - code: "P2002"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Missing required division"
+    description: "One or more required divisions are missing from program"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "test".
+      ENVIRONMENT DIVISION.
+          OS "Linux".
+    expected_error: "Missing required DATA DIVISION and PROCEDURE DIVISION"
+    fix: "Add all four required divisions to program structure"
+    
+  - code: "P2003"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Unquoted environment value"
+    description: "Environment division values must be quoted strings"
+    trigger_code: |
+      ENVIRONMENT DIVISION.
+          OS Linux.
+    expected_error: "Expected quoted string in ENVIRONMENT, got unquoted identifier 'Linux'"
+    fix: "Wrap environment value in quotes: OS \"Linux\"."
+    
+  - code: "P2004"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Missing period terminator"
+    description: "Statement must end with period (.)"
+    trigger_code: |
+      IDENTIFICATION DIVISION
+          PROGRAM "test".
+    expected_error: "Expected '.', got 'PROGRAM'"
+    fix: "Add period (.) at end of IDENTIFICATION DIVISION statement"
+    
+  - code: "P2005"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Unknown procedure statement"
+    description: "Procedure division uses unknown operation keyword"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          UNKNOWN data.
+    expected_error: "Unknown procedure statement: UNKNOWN"
+    fix: "Use valid operations: COMPRESS, VERIFY-INTEGRITY, ENCRYPT, DECRYPT, etc."
+    
+  - code: "P2006"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Invalid data type"
+    description: "Data type specified is not recognized"
+    trigger_code: |
+      DATA DIVISION.
+          INVALID-TYPE myvar.
+    expected_error: "Invalid data type: INVALID-TYPE"
+    fix: "Use valid types: BINARY-BLOB, VIDEO-MP4, IMAGE-JPG, FINANCIAL-DECIMAL, AUDIO-WAV, TEXT-UTF8, DOCUMENT-PDF, DATA-CSV"
+    
+  - code: "P2007"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Missing variable name"
+    description: "Variable declaration missing name after type specification"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB .
+    expected_error: "Expected variable name after BINARY-BLOB"
+    fix: "Provide variable name: BINARY-BLOB myvar."
+    
+  - code: "P2008"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Duplicate variable declaration"
+    description: "Variable with same name declared multiple times in DATA DIVISION"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+          VIDEO-MP4 data.
+    expected_error: "Variable 'data' already declared at line 2"
+    fix: "Use unique variable names or remove duplicate declaration"
+    
+  - code: "P2009"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Invalid PROGRAM-ID format"
+    description: "Program identifier does not follow naming rules"
+    trigger_code: |
+      IDENTIFICATION DIVISION.
+          PROGRAM "123INVALID".
+    expected_error: "Invalid PROGRAM-ID: must start with letter, got '123INVALID'"
+    fix: "Start identifier with letter; can include letters, numbers, hyphens, underscores"
+    
+  - code: "P2010"
+    layer: 2
+    layer_name: "Parser"
+    category: "Semantic"
+    title: "Variable not declared"
+    description: "Procedure references variable not declared in DATA DIVISION"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          COMPRESS missing_var.
+    expected_error: "Variable 'missing_var' not declared in DATA DIVISION"
+    fix: "Declare variable in DATA DIVISION before use in PROCEDURE DIVISION"
+    
+  - code: "P2011"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Type mismatch in operation"
+    description: "Operation used with incompatible data type"
+    trigger_code: |
+      DATA DIVISION.
+          FINANCIAL-DECIMAL amount.
+      PROCEDURE DIVISION.
+          VERIFY-INTEGRITY amount.
+    expected_error: "VERIFY-INTEGRITY expects BINARY-BLOB, got FINANCIAL-DECIMAL"
+    fix: "Use appropriate operation for data type or convert data type"
+    
+  - code: "P2012"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Missing colon in IF statement"
+    description: "IF statement condition should be followed by colon"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          IF condition
+              COMPRESS data.
+    expected_error: "Expected ':' after IF condition"
+    fix: "Add colon after condition: IF condition: ..."
+    
+  - code: "P2013"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Missing DO in FOR loop"
+    description: "FOR loop requires DO keyword"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          FOR i IN 1..10
+              COMPRESS data.
+    expected_error: "Expected 'DO' in FOR loop"
+    fix: "Add DO keyword: FOR i IN 1..10 DO ..."
+    
+  - code: "P2014"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Invalid range specification"
+    description: "Range in FOR loop invalid format"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          FOR i IN 1...10 DO
+              COMPRESS data.
+    expected_error: "Invalid range '1...10'; expected format 'start..end'"
+    fix: "Use correct range format with exactly two dots: 1..10"
+    
+  - code: "P2015"
+    layer: 2
+    layer_name: "Parser"
+    category: "Syntax"
+    title: "Nested control structures"
+    description: "Control structures (IF, FOR, WHILE) cannot be nested"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          IF condition:
+              FOR i IN 1..10 DO
+                  COMPRESS data.
+    expected_error: "Nested control structures not allowed; FOR inside IF"
+    fix: "Flatten structure or move inner loop outside IF block"
+
+  # ============================================================================
+  # Layer 3: IR Errors (I3001 - I3999)  
+  # ============================================================================
+  - code: "I3001"
+    layer: 3
+    layer_name: "IR"
+    category: "Semantic"
+    title: "Undefined variable in IR"
+    description: "IR generation encountered reference to undefined variable"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          COMPRESS undefined_var.
+    expected_error: "IR error: Variable 'undefined_var' not defined"
+    fix: "Declare variable in DATA DIVISION before use"
+    
+  - code: "I3002"
+    layer: 3
+    layer_name: "IR"
+    category: "Semantic"
+    title: "Type mismatch in instruction"
+    description: "Instruction expects different data type than provided"
+    trigger_code: |
+      DATA DIVISION.
+          FINANCIAL-DECIMAL amount.
+      PROCEDURE DIVISION.
+          COMPRESS amount.
+    expected_error: "IR type error: COMPRESS expects BINARY-BLOB, got FINANCIAL-DECIMAL"
+    fix: "Convert type or use appropriate operation for data type"
+    
+  - code: "I3003"
+    layer: 3
+    layer_name: "IR"
+    category: "Semantic"
+    title: "Instruction ordering violation"
+    description: "Instructions appear in invalid order for data flow"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          VERIFY-INTEGRITY data.
+          COMPRESS data.
+    expected_error: "Instruction order invalid: VERIFY-INTEGRITY must follow COMPRESS for compressed data"
+    fix: "Reorder instructions to follow proper data flow principles"
+    
+  - code: "I3004"
+    layer: 3
+    layer_name: "IR"
+    category: "Semantic"
+    title: "Infinite control flow"
+    description: "Control structure creates unreachable code or infinite loop"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          WHILE true DO
+              COMPRESS data.
+    expected_error: "IR warning: Unreachable code after infinite loop"
+    fix: "Ensure control flow can eventually exit loop"
+    
+  - code: "I3005"
+    layer: 3
+    layer_name: "IR"
+    category: "Semantic"
+    title: "Dead code detected"
+    description: "Unreachable code found after unconditional branch"
+    trigger_code: |
+      PROCEDURE DIVISION.
+          IF true:
+              COMPRESS data.
+          COMPRESS other_data.
+    expected_error: "Dead code: line after IF true never executes"
+    fix: "Remove unreachable code or restructure control flow"
+
+  # ============================================================================
+  # Layer 4: Runtime Errors (R4001 - R4999)
+  # ============================================================================
+  - code: "R4001"
+    layer: 4
+    layer_name: "Runtime"
+    category: "Runtime"
+    title: "Buffer not found"
+    description: "Execution attempted to access non-existent buffer"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          COMPRESS data.
+          COMPRESS nonexistent.
+    expected_error: "Runtime error: Buffer 'nonexistent' not found"
+    fix: "Ensure variable is declared and initialized before use"
+    
+  - code: "R4002"
+    layer: 4
+    layer_name: "Runtime"
+    category: "Runtime"
+    title: "Compression failed"
+    description: "Compression operation encountered error during execution"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          COMPRESS data.
+    expected_error: "Runtime error: Compression failed: invalid buffer format"
+    fix: "Ensure buffer contains valid data; check buffer size"
+    
+  - code: "R4003"
+    layer: 4
+    layer_name: "Runtime"
+    category: "Runtime"
+    title: "Verification failed"
+    description: "Integrity verification operation failed"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          COMPRESS data.
+          VERIFY-INTEGRITY data.
+    expected_error: "Runtime error: Integrity verification failed for buffer 'data'"
+    fix: "Check buffer integrity; ensure data has not been corrupted"
+    
+  - code: "R4004"
+    layer: 4
+    layer_name: "Runtime"
+    category: "Runtime"
+    title: "Encryption error"
+    description: "Encryption operation failed during execution"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB secret.
+      PROCEDURE DIVISION.
+          ENCRYPT secret.
+    expected_error: "Runtime error: Encryption failed: invalid key size"
+    fix: "Verify encryption key is correct size; check buffer validity"
+    
+  - code: "R4005"
+    layer: 4
+    layer_name: "Runtime"
+    category: "Runtime"
+    title: "Decryption error"
+    description: "Decryption operation failed during execution"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB secret.
+      PROCEDURE DIVISION.
+          DECRYPT secret.
+    expected_error: "Runtime error: Decryption failed: incorrect key or corrupted data"
+    fix: "Verify decryption key matches encryption key; check data integrity"
+
+  # ============================================================================
+  # Layer 5: Security Errors (S5001 - S5999)
+  # ============================================================================
+  - code: "S5001"
+    layer: 5
+    layer_name: "Security"
+    category: "Runtime"
+    title: "Cryptographic operation failed"
+    description: "Cryptographic operation did not complete successfully"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          ENCRYPT data.
+    expected_error: "Security error: Cryptographic operation failed"
+    fix: "Verify cryptographic parameters; ensure keys are valid"
+    
+  - code: "S5002"
+    layer: 5
+    layer_name: "Security"
+    category: "Runtime"
+    title: "Hash mismatch"
+    description: "Data hash does not match expected value"
+    trigger_code: |
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          VERIFY-INTEGRITY data.
+    expected_error: "Security error: Hash mismatch; data integrity compromised"
+    fix: "Ensure data has not been modified; re-verify source data"
+    
+  - code: "S5003"
+    layer: 5
+    layer_name: "Security"
+    category: "Runtime"
+    title: "Determinism violation"
+    description: "Operation produced non-deterministic output"
+    trigger_code: |
+      # Non-deterministic operation detected
+      DATA DIVISION.
+          BINARY-BLOB data.
+      PROCEDURE DIVISION.
+          COMPRESS data.
+    expected_error: "Security error: Determinism violation detected"
+    fix: "Use deterministic operations only; remove any randomness or time-dependent logic"

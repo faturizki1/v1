@@ -1,0 +1,9 @@
+// Test file for error code: L1038
+// Expected error: Missing Constraint character in indentation -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-missing".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".

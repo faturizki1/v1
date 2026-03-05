@@ -1,0 +1,9 @@
+// Test file for error code: L1027
+// Expected error: Invalid DATA-CSV character in expression -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-invalid".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".

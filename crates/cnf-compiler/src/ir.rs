@@ -137,6 +137,9 @@ impl std::fmt::Display for Instruction {
             Instruction::WhileLoop { condition, instrs } => {
                 write!(f, "WHILE({}) [{}]", condition, instrs.len())
             }
+        }
+    }
+}
 
 pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
     let mut instructions = Vec::new();

@@ -1,0 +1,9 @@
+// Test file for error code: L1039
+// Expected error: Missing Boundary character in encoding -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-missing".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".

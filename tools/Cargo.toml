@@ -1,0 +1,26 @@
+[package]
+name = "cnf-tools"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# This is a standalone tool package, not part of the workspace
+[workspace]
+
+[[bin]]
+name = "gen_errors"
+path = "src/gen_errors.rs"
+
+[[bin]]
+name = "doc_gen"
+path = "src/doc_gen.rs"
+
+[[bin]]
+name = "test_engine"
+path = "src/test_engine.rs"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+regex = "1.10"
+chrono = "0.4"
+itertools = "0.12"

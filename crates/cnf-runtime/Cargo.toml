@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 cnf-security = { path = "../cnf-security" }
+cnf-compiler = { path = "../cnf-compiler" }
 cobol-protocol-v153 = { path = "../cobol-protocol-v153" }
 
 [dev-dependencies]

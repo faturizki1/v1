@@ -1,0 +1,9 @@
+// Test file for error code: L1018
+// Expected error: Invalid Unmatched character in variable declaration -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-invalid".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".

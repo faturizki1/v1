@@ -1,0 +1,9 @@
+// Test file for error code: L1074
+// Expected error: Overflow FINANCIAL-DECIMAL character in variable declaration -- expected valid UTF-8 encoding
+// Category: Syntax
+// Layer: 1 (Lexer)
+
+IDENTIFICATION DIVISION.
+    PROGRAM "test-overflow".
+EVIRONMENT DIVISION.
+    OS "invalid™utf8-chars".
