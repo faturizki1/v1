@@ -53,6 +53,10 @@ enum Commands {
         /// Buffer data as hex string (for INPUT variables)
         #[arg(short, long, value_name = "HEX")]
         buffer: Option<String>,
+
+        /// Verbose output (show IR instructions and buffer states)
+        #[arg(short, long)]
+        verbose: bool,
     },
 
     /// Interactive REPL (Read-Eval-Print-Loop) for testing snippets
@@ -73,8 +77,8 @@ fn main() {
         Commands::Check { input } => {
             check_file(&input);
         }
-        Commands::Run { input, buffer } => {
-            run_file(&input, buffer.as_deref());
+        Commands::Run { input, buffer, verbose } => {
+            run_file(&input, buffer.as_deref(), verbose);
         }
         Commands::Repl => {
             println!("🎯 CENTRA-NF REPL (Interactive Shell)");
@@ -165,7 +169,7 @@ fn check_file(input_path: &PathBuf) {
 }
 
 /// Run a .cnf program using the runtime
-fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>) {
+fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>, verbose: bool) {
     // Read source file
     let source = match fs::read_to_string(input_path) {
         Ok(content) => content,
@@ -176,7 +180,7 @@ fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>) {
     };
 
     // Compile
-    let _instructions = match compile(&source) {
+    let instructions = match compile(&source) {
         Ok(instr) => instr,
         Err(e) => {
             eprintln!("❌ Compilation error:\n{}", e);
@@ -184,10 +188,21 @@ fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>) {
         }
     };
 
+    if verbose {
+        eprintln!(
+            "ℹ️  Compiled successfully. Generated {} instruction(s)",
+            instructions.len()
+        );
+        for instr in &instructions {
+            eprintln!("  → {}", instr);
+        }
+    }
+
     // Initialize runtime
     let mut runtime = cnf_runtime::Runtime::new();
 
-    // Add buffer if provided
+    // Add buffer if provided. We attempt to infer the intended variable name
+    // from the compiled IR so that the caller need not hardcode it.
     if let Some(hex) = buffer_hex {
         let data = match hex::decode(hex) {
             Ok(d) => d,
@@ -196,10 +211,82 @@ fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>) {
                 std::process::exit(1);
             }
         };
-        runtime.add_buffer("INPUT".to_string(), data);
+
+        // heuristically pick the first target name mentioned in the program
+        fn infer_name(instrs: &[cnf_compiler::ir::Instruction]) -> Option<String> {
+            use cnf_compiler::ir::Instruction;
+            for instr in instrs {
+                match instr {
+                    Instruction::Compress { target }
+                    | Instruction::VerifyIntegrity { target }
+                    | Instruction::Encrypt { target }
+                    | Instruction::Decrypt { target }
+                    | Instruction::Transcode { target, .. }
+                    | Instruction::Filter { target, .. }
+                    | Instruction::Convert { target, .. }
+                    | Instruction::Split { target, .. }
+                    | Instruction::Validate { target, .. }
+                    | Instruction::Extract { target, .. }
+                    | Instruction::Print { target, .. }
+                    | Instruction::Read { target }
+                    | Instruction::Set { target, .. }
+                    | Instruction::Add { target, .. }
+                    | Instruction::Subtract { target, .. }
+                    | Instruction::Multiply { target, .. }
+                    | Instruction::Divide { target, .. } => {
+                        return Some(target.clone());
+                    }
+                    Instruction::Aggregate { targets, .. }
+                    | Instruction::Merge { targets, .. } => {
+                        if let Some(first) = targets.first() {
+                            return Some(first.clone());
+                        }
+                    }
+                    Instruction::IfStatement { then_instrs, else_instrs, .. } => {
+                        if let Some(name) = infer_name(then_instrs) {
+                            return Some(name);
+                        }
+                        if let Some(e) = else_instrs {
+                            if let Some(name) = infer_name(e) {
+                                return Some(name);
+                            }
+                        }
+                    }
+                    Instruction::ForLoop { instrs, .. }
+                    | Instruction::WhileLoop { instrs, .. } => {
+                        if let Some(name) = infer_name(instrs) {
+                            return Some(name);
+                        }
+                    }
+                    Instruction::FunctionDef { instrs, .. } => {
+                        // dive into function body
+                        if let Some(name) = infer_name(instrs) {
+                            return Some(name);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+
+        let buf_name = infer_name(&instructions).unwrap_or_else(|| "INPUT".to_string());
+        runtime.add_buffer(buf_name, data);
     }
 
-    // Execute (placeholder for v0.3.0)
-    eprintln!("✓ Runtime execution framework ready");
-    eprintln!("📝 Full execution with results will be available in v0.3.0");
+    // Execute IR instructions through the runtime
+    if let Err(e) = runtime.execute_instructions(&instructions) {
+        eprintln!("❌ Runtime error:\n{}", e);
+        std::process::exit(1);
+    }
+
+    if verbose {
+        eprintln!("✓ Execution completed successfully");
+        // dump buffer states
+        for (name, buf) in runtime.list_buffers() {
+            println!("BUFFER {}: {}", name, hex::encode(buf));
+        }
+    } else {
+        eprintln!("✓ Execution completed successfully");
+    }
 }

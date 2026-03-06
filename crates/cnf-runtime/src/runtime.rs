@@ -125,10 +125,21 @@ impl Runtime {
         Ok(())
     }
 
-    /// Execute FILTER instruction (no-op stub).
-    fn dispatch_filter(&mut self, _target: &str, _condition: &str) -> Result<(), CnfError> {
-        // Filtering logic would examine buffer contents and drop unwanted
-        // bytes. For now, we treat it as a no-op to keep runtime simple.
+    /// Execute FILTER instruction.
+    ///
+    /// Currently supports a very small set of conditions used by tests:
+    /// - "nonzero": remove any zero-valued byte from the buffer.
+    ///
+    /// The design is intentionally simple: real predicate evaluation would
+    /// require a domain-specific language/parser; that belongs in a future
+    /// release.
+    fn dispatch_filter(&mut self, target: &str, condition: &str) -> Result<(), CnfError> {
+        let buf = self.get_buffer_mut(target)?;
+        if condition == "nonzero" {
+            buf.retain(|&b| b != 0);
+        } else {
+            // other conditions are no-ops for now
+        }
         Ok(())
     }
 
@@ -143,11 +154,41 @@ impl Runtime {
         Ok(())
     }
 
-    /// Execute SPLIT instruction (stub: mark buffer with count).
-    fn dispatch_split(&mut self, target: &str, _parts: &str) -> Result<(), CnfError> {
-        let _buf = self.get_buffer_mut(target)?;
-        // In a real system, we'd split the buffer into N parts.
-        // For now, this is a no-op (placeholder for future implementation).
+    /// Execute SPLIT instruction.
+    ///
+    /// The `_parts` parameter is expected to be an integer string indicating
+    /// how many roughly equal chunks to divide the buffer into.  Each chunk is
+    /// written back as a new buffer named `<target>_part<i>` (1‑indexed) and
+    /// the original buffer is left unchanged.
+    fn dispatch_split(&mut self, target: &str, parts: &str) -> Result<(), CnfError> {
+        let bytes = {
+            // force the borrow of `self` to end before we return from the
+            // block. using an inner scope ensures `bufref` is dropped early.
+            let tmp: Vec<u8>;
+            {
+                let bufref = self.get_buffer(target)?;
+                tmp = bufref.to_vec();
+            }
+            tmp
+        }; // owned copy avoids borrow conflicts
+        let n: usize = parts
+            .parse()
+            .map_err(|_| CnfError::InvalidInstruction(parts.to_string()))?;
+        if n == 0 {
+            return Err(CnfError::InvalidInstruction("split into 0 parts".into()));
+        }
+        let len = bytes.len();
+        let chunk = len.div_ceil(n); // ceiling division
+        for i in 0..n {
+            let start = i * chunk;
+            if start >= len {
+                break;
+            }
+            let end = usize::min(start + chunk, len);
+            let slice = &bytes[start..end];
+            let name = format!("{}_part{}", target, i + 1);
+            self.add_buffer(name, slice.to_vec());
+        }
         Ok(())
     }
 
@@ -159,10 +200,29 @@ impl Runtime {
         Ok(())
     }
 
-    /// Execute EXTRACT instruction (stub: no-op).
-    fn dispatch_extract(&mut self, _target: &str, _path: &str) -> Result<(), CnfError> {
-        // In a real system, we'd parse JSON/XML path and extract value.
-        // For now, this is a no-op.
+    /// Execute EXTRACT instruction.
+    ///
+    /// Only JSON is supported at the moment.  The path must start with
+    /// `$.` and subsequent identifiers are treated as object keys.  The
+    /// extracted value is serialized to string and stored in a new buffer
+    /// named `<target>_extracted`.
+    fn dispatch_extract(&mut self, target: &str, path: &str) -> Result<(), CnfError> {
+        let buf = self.get_buffer(target)?;
+        if !path.starts_with("$.") {
+            return Err(CnfError::InvalidInstruction(path.to_string()));
+        }
+        let text = String::from_utf8(buf.to_vec()).map_err(|_| CnfError::InvalidInstruction("non-utf8 buffer".into()))?;
+        let json: serde_json::Value = serde_json::from_str(&text)
+            .map_err(|_| CnfError::InvalidInstruction("invalid json".into()))?;
+        let mut current = &json;
+        for key in path[2..].split('.') {
+            current = current
+                .get(key)
+                .ok_or_else(|| CnfError::InvalidInstruction(format!("path {} not found", path)))?;
+        }
+        let extracted = current.to_string();
+        let outname = format!("{}_extracted", target);
+        self.add_buffer(outname, extracted.into_bytes());
         Ok(())
     }
 
@@ -200,14 +260,43 @@ impl Runtime {
         Ok(())
     }
 
-    /// Execute AGGREGATE instruction (stub: no-op on all targets).
-    fn dispatch_aggregate(&mut self, targets: &[String], _operation: &str) -> Result<(), CnfError> {
-        // Verify all targets exist
-        for t in targets {
-            let _buf = self.get_buffer(t)?;
+    /// Execute AGGREGATE instruction.
+    ///
+    /// Supported operations: `sum`, `count`, `avg`.  The result is stored in a
+    /// new buffer named `<operation>_<first_target>` encoded as a little-endian
+    /// f64.
+    fn dispatch_aggregate(&mut self, targets: &[String], operation: &str) -> Result<(), CnfError> {
+        if targets.is_empty() {
+            return Err(CnfError::InvalidInstruction("aggregate with no targets".into()));
         }
-        // In a real system, we'd compute SUM, AVG, COUNT, etc.
-        // For now, this is a no-op.
+        let mut total = 0f64;
+        let mut count = 0usize;
+        for t in targets {
+            let buf = self.get_buffer(t)?;
+            for &b in buf {
+                total += b as f64;
+                count += 1;
+            }
+        }
+        let result = match operation {
+            "sum" => total,
+            "count" => count as f64,
+            "avg" => {
+                if count == 0 {
+                    0.0
+                } else {
+                    total / (count as f64)
+                }
+            }
+            _ => {
+                return Err(CnfError::InvalidInstruction(format!(
+                    "unknown aggregate op {}",
+                    operation
+                )))
+            }
+        };
+        let outname = format!("{}_{}", operation, targets[0]);
+        self.add_buffer(outname, result.to_le_bytes().to_vec());
         Ok(())
     }
 
@@ -375,12 +464,12 @@ impl Runtime {
         let frame = self
             .call_stack
             .pop_frame()
-            .map_err(|e| CnfError::InvalidInstruction(e))?;
+            .map_err(CnfError::InvalidInstruction)?;
         self.scope_manager
             .pop_scope()
-            .map_err(|e| CnfError::InvalidInstruction(e))?;
+            .map_err(CnfError::InvalidInstruction)?;
 
-        Ok(frame.return_value.unwrap_or_else(|| String::new()))
+        Ok(frame.return_value.unwrap_or_else(String::new))
     }
 
     /// Get variable from current scope or call frame
@@ -551,7 +640,7 @@ impl Runtime {
             }
             Instruction::FunctionDef {
                 name,
-                parameters,
+                parameters: _parameters,
                 return_type: _,
                 instrs,
             } => {
@@ -561,7 +650,7 @@ impl Runtime {
             }
             Instruction::FunctionCall { name, arguments } => {
                 // Simple function call (push/pop frame)
-                let mut params = Vec::new();
+                let params = Vec::new();
                 let mut args = Vec::new();
 
                 for arg in arguments {
@@ -703,6 +792,18 @@ impl Runtime {
     pub fn get_output(&self, name: &str) -> Result<Vec<u8>, CnfError> {
         self.get_buffer(name).map(|b| b.to_vec())
     }
+
+    /// List all buffers currently stored in the runtime.
+    ///
+    /// Returns a vector of (name, data) pairs. The data is cloned so that
+    /// callers cannot mutate internal state. This helper is primarily used by
+    /// the CLI for debugging/verbose dumps and by tests.
+    pub fn list_buffers(&self) -> Vec<(String, Vec<u8>)> {
+        self.buffers
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
+    }
 }
 
 impl Default for Runtime {
@@ -742,14 +843,15 @@ mod tests {
     #[test]
     fn test_dispatch_transcode_and_filter_noop() {
         let mut runtime = Runtime::new();
-        runtime.add_buffer("b".to_string(), vec![1, 2]);
+        runtime.add_buffer("b".to_string(), vec![0, 1, 0, 2]);
+        runtime
+            .dispatch_instruction("FILTER(b WHERE nonzero)")
+            .unwrap();
+        assert_eq!(runtime.get_output("b").unwrap(), vec![1, 2]);
         runtime
             .dispatch_instruction("TRANSCODE(b -> CSV-TABLE)")
             .unwrap();
         assert!(runtime.get_output("b").unwrap().ends_with(b"CSV-TABLE"));
-        runtime
-            .dispatch_instruction("FILTER(b WHERE cond)")
-            .unwrap();
     }
 
     #[test]
@@ -766,6 +868,8 @@ mod tests {
         let mut runtime = Runtime::new();
         runtime.add_buffer("src".to_string(), vec![1, 2, 3, 4]);
         runtime.dispatch_instruction("SPLIT(src INTO 2)").unwrap();
+        assert_eq!(runtime.get_output("src_part1").unwrap(), vec![1, 2]);
+        assert_eq!(runtime.get_output("src_part2").unwrap(), vec![3, 4]);
     }
 
     #[test]
@@ -780,10 +884,12 @@ mod tests {
     #[test]
     fn test_dispatch_extract() {
         let mut runtime = Runtime::new();
-        runtime.add_buffer("data".to_string(), b"test".to_vec());
+        runtime.add_buffer("data".to_string(), b"{\"field\":42}".to_vec());
         runtime
             .dispatch_instruction("EXTRACT($.field FROM data)")
             .unwrap();
+        let out = runtime.get_output("data_extracted").unwrap();
+        assert_eq!(out, b"42".to_vec());
     }
 
     #[test]
@@ -794,6 +900,9 @@ mod tests {
         runtime
             .dispatch_instruction("AGGREGATE(col1,col2 AS sum)")
             .unwrap();
+        let out = runtime.get_output("sum_col1").unwrap();
+        let sum = f64::from_le_bytes(out.as_slice().try_into().unwrap());
+        assert_eq!(sum, 21.0);
     }
 
     #[test]

@@ -242,6 +242,7 @@ impl TypeValidator {
     }
 
     /// Check if an operation is legal on the given type
+    #[allow(dead_code)]
     fn can_transcode(data_type: &crate::ast::DataType) -> bool {
         // TRANSCODE not allowed on BINARY-BLOB or FINANCIAL-DECIMAL
         !matches!(
@@ -472,9 +473,9 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                 // Type check: VALIDATE requires compatible type
                 if let Some(dtype) = var_types.get(target) {
                     if !TypeValidator::can_validate(dtype) {
-                        return Err(format!(
-                            "CNF-V001: VALIDATE operation only allowed on JSON-OBJECT, XML-DOCUMENT, or CSV-TABLE types"
-                        ));
+                        return Err(
+                            "CNF-V001: VALIDATE operation only allowed on JSON-OBJECT, XML-DOCUMENT, or CSV-TABLE types".to_string()
+                        );
                     }
                 }
                 instructions.push(Instruction::Validate {
@@ -492,9 +493,9 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                 // Type check: EXTRACT requires compatible type
                 if let Some(dtype) = var_types.get(target) {
                     if !TypeValidator::can_extract(dtype) {
-                        return Err(format!(
-                            "CNF-E001: EXTRACT operation only allowed on JSON-OBJECT or XML-DOCUMENT types"
-                        ));
+                        return Err(
+                            "CNF-E001: EXTRACT operation only allowed on JSON-OBJECT or XML-DOCUMENT types".to_string()
+                        );
                     }
                 }
                 instructions.push(Instruction::Extract {
@@ -743,6 +744,7 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
 }
 
 /// Helper to lower a single procedure statement to instruction
+#[allow(clippy::only_used_in_recursion)]
 fn lower_single_statement(
     stmt: &ProcedureStatement,
     declared_vars: &std::collections::HashSet<String>,

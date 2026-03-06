@@ -100,6 +100,37 @@ Last updated: 2026-03-06
 
 ---
 
+## Session 3: CLI-Runtime Integration
+
+[2026-03-06]
+
+**Change:**
+- Integrate `centra-nf run` command with runtime execution pipeline
+- Add verbose mode displaying IR instructions and buffer states
+- Implement runtime buffer name inference from IR
+- Introduce `Runtime::list_buffers` helper for diagnostics
+- Enhance CLI tests and add new integration tests covering file loading,
+  buffer injection, and execution
+- Correct example CNF files to conform with grammar rules
+
+**Scope:**
+- crates/centra-nf-cli/src/main.rs
+- crates/centra-nf-cli/tests/cli_integration.rs
+- crates/centra-nf-cli/tests/integration_test.rs
+- crates/cnf-runtime/src/runtime.rs
+- examples/*.cnf (simple, full_pipeline, control_flow, io_demo, advanced_ops)
+
+**Status:** ✅ COMPLETED
+
+**Notes:**
+- Buffer inference heuristic scans first instruction target name; falls back to
+  "INPUT" if unknown.
+- CLI-run now executes IR and reports runtime errors; tests adjusted to supply
+  dummy buffer when needed.
+- Example files updated to use `INPUT <TYPE> AS <NAME>` syntax.
+
+---
+
 ## Session 3: BINARY-BLOB Data Type Integration
 
 [2026-03-05]

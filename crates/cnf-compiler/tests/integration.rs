@@ -726,7 +726,6 @@ mod integration_tests {
     }
 
     #[test]
-    #[test]
     fn test_if_statement_basic_parsing() {
         let source = r#"
             IDENTIFICATION DIVISION.
