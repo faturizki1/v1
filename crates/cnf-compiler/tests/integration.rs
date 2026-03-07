@@ -1137,7 +1137,9 @@ mod integration_tests {
         let result = compile(source);
         assert!(result.is_ok(), "SUBTRACT operation should compile");
         let ir = result.unwrap();
-        assert!(ir.iter().any(|instr| instr.to_string().contains("SUBTRACT")));
+        assert!(ir
+            .iter()
+            .any(|instr| instr.to_string().contains("SUBTRACT")));
     }
 
     #[test]
@@ -1157,7 +1159,9 @@ mod integration_tests {
         let result = compile(source);
         assert!(result.is_ok(), "MULTIPLY operation should compile");
         let ir = result.unwrap();
-        assert!(ir.iter().any(|instr| instr.to_string().contains("MULTIPLY")));
+        assert!(ir
+            .iter()
+            .any(|instr| instr.to_string().contains("MULTIPLY")));
     }
 
     #[test]
@@ -1220,8 +1224,73 @@ mod integration_tests {
         "#;
 
         let result = compile(source);
-        assert!(result.is_err(), "Arithmetic with undeclared variable should fail");
+        assert!(
+            result.is_err(),
+            "Arithmetic with undeclared variable should fail"
+        );
         let error = result.unwrap_err();
         assert!(error.contains("not declared"));
+    }
+
+    #[test]
+    fn test_concatenate_operation_compilation() {
+        let source = r#"
+            IDENTIFICATION DIVISION.
+                PROGRAM-ID. ConcatTest.
+            ENVIRONMENT DIVISION.
+                OS "Linux".
+            DATA DIVISION.
+                INPUT TEXT-STRING.
+                INPUT TEXT-STRING.
+                INPUT TEXT-STRING.
+            PROCEDURE DIVISION.
+                CONCATENATE TEXT-STRING TEXT-STRING TEXT-STRING.
+        "#;
+        let result = compile(source);
+        assert!(result.is_ok(), "CONCATENATE operation should compile");
+        let ir = result.unwrap();
+        assert!(ir
+            .iter()
+            .any(|instr| instr.to_string().contains("CONCATENATE")));
+    }
+
+    #[test]
+    fn test_substring_operation_compilation() {
+        let source = r#"
+            IDENTIFICATION DIVISION.
+                PROGRAM-ID. SubstringTest.
+            ENVIRONMENT DIVISION.
+                OS "Linux".
+            DATA DIVISION.
+                INPUT TEXT-STRING.
+                INPUT TEXT-STRING.
+            PROCEDURE DIVISION.
+                SUBSTRING TEXT-STRING TEXT-STRING 0 5.
+        "#;
+        let result = compile(source);
+        assert!(result.is_ok(), "SUBSTRING operation should compile");
+        let ir = result.unwrap();
+        assert!(ir
+            .iter()
+            .any(|instr| instr.to_string().contains("SUBSTRING")));
+    }
+
+    #[test]
+    fn test_length_operation_compilation() {
+        let source = r#"
+            IDENTIFICATION DIVISION.
+                PROGRAM-ID. LengthTest.
+            ENVIRONMENT DIVISION.
+                OS "Linux".
+            DATA DIVISION.
+                INPUT TEXT-STRING.
+                INPUT NUMBER-INTEGER.
+            PROCEDURE DIVISION.
+                LENGTH NUMBER-INTEGER TEXT-STRING.
+        "#;
+        let result = compile(source);
+        assert!(result.is_ok(), "LENGTH operation should compile");
+        let ir = result.unwrap();
+        assert!(ir.iter().any(|instr| instr.to_string().contains("LENGTH")));
     }
 }

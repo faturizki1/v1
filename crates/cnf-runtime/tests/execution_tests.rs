@@ -17,7 +17,10 @@ mod runtime_execution_tests {
         };
 
         let result = runtime.execute_instruction(&instr);
-        assert!(result.is_ok(), "DISPLAY instruction should execute successfully");
+        assert!(
+            result.is_ok(),
+            "DISPLAY instruction should execute successfully"
+        );
     }
 
     #[test]
@@ -59,10 +62,7 @@ mod runtime_execution_tests {
         };
 
         let result = runtime.execute_instruction(&instr);
-        assert!(
-            result.is_err(),
-            "Operation on missing buffer should fail"
-        );
+        assert!(result.is_err(), "Operation on missing buffer should fail");
 
         let err = result.unwrap_err();
         assert!(

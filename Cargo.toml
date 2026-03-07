@@ -3,6 +3,7 @@ members = [
     "crates/cnf-compiler",
     "crates/cnf-runtime",
     "crates/cnf-security",
+    "crates/cnf-storage",
     "crates/cobol-protocol-v153",
     "crates/cnf-stdlib",
     "crates/centra-nf-cli",

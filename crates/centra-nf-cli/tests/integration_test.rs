@@ -19,14 +19,9 @@ mod cli_runtime_integration {
     fn test_cli_run_accepts_valid_cnf_file() {
         // Test that CLI accepts a valid .cnf file without errors
         let example_file = test_examples_dir().join("simple.cnf");
-        
+
         let output = Command::new(env!("CARGO_BIN_EXE_centra-nf"))
-            .args(&[
-                "run",
-                example_file.to_str().unwrap(),
-                "--buffer",
-                "00",
-            ])
+            .args(&["run", example_file.to_str().unwrap(), "--buffer", "00"])
             .output()
             .expect("Failed to execute CLI");
 
@@ -45,10 +40,7 @@ mod cli_runtime_integration {
             .output()
             .expect("Failed to execute CLI");
 
-        assert!(
-            !output.status.success(),
-            "CLI should reject missing files"
-        );
+        assert!(!output.status.success(), "CLI should reject missing files");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert!(
@@ -62,7 +54,7 @@ mod cli_runtime_integration {
     fn test_cli_run_with_buffer_input() {
         // Test that CLI accepts --buffer parameter with hex input
         let example_file = test_examples_dir().join("simple.cnf");
-        
+
         let output = Command::new(env!("CARGO_BIN_EXE_centra-nf"))
             .args(&[
                 "run",
@@ -84,7 +76,7 @@ mod cli_runtime_integration {
     fn test_cli_run_rejects_invalid_hex_buffer() {
         // Test that CLI properly validates hex input format
         let example_file = test_examples_dir().join("simple.cnf");
-        
+
         let output = Command::new(env!("CARGO_BIN_EXE_centra-nf"))
             .args(&[
                 "run",

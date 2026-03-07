@@ -8,8 +8,8 @@ license.workspace = true
 [dependencies]
 cnf-security = { path = "../cnf-security" }
 cnf-compiler = { path = "../cnf-compiler" }
+cnf-storage = { path = "../cnf-storage" }
 cobol-protocol-v153 = { path = "../cobol-protocol-v153" }
-serde_json = "1"
 
 [dev-dependencies]
 criterion = "0.5"

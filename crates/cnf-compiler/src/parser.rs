@@ -112,6 +112,18 @@ impl Parser {
                 self.advance();
                 Ok(DataType::ParquetTable)
             }
+            Token::TextString => {
+                self.advance();
+                Ok(DataType::TextString)
+            }
+            Token::NumberInteger => {
+                self.advance();
+                Ok(DataType::NumberInteger)
+            }
+            Token::NumberDecimal => {
+                self.advance();
+                Ok(DataType::NumberDecimal)
+            }
             _ => Err(format!("Expected data type, got {}", self.current())),
         }
     }
@@ -158,6 +170,18 @@ impl Parser {
             Token::ParquetTable => {
                 self.advance();
                 Ok("PARQUET-TABLE".to_string())
+            }
+            Token::TextString => {
+                self.advance();
+                Ok("TEXT-STRING".to_string())
+            }
+            Token::NumberInteger => {
+                self.advance();
+                Ok("NUMBER-INTEGER".to_string())
+            }
+            Token::NumberDecimal => {
+                self.advance();
+                Ok("NUMBER-DECIMAL".to_string())
             }
             _ => Err(format!(
                 "Expected variable name or type, got {}",
@@ -207,7 +231,11 @@ impl Parser {
                 let operand1 = self.expect_variable_or_type()?;
                 let operand2 = self.expect_variable_or_type()?;
                 self.expect(Token::Period)?;
-                Ok(ProcedureStatement::Add { target, operand1, operand2 })
+                Ok(ProcedureStatement::Add {
+                    target,
+                    operand1,
+                    operand2,
+                })
             }
             Token::Subtract => {
                 self.advance();
@@ -215,7 +243,11 @@ impl Parser {
                 let operand1 = self.expect_variable_or_type()?;
                 let operand2 = self.expect_variable_or_type()?;
                 self.expect(Token::Period)?;
-                Ok(ProcedureStatement::Subtract { target, operand1, operand2 })
+                Ok(ProcedureStatement::Subtract {
+                    target,
+                    operand1,
+                    operand2,
+                })
             }
             Token::Multiply => {
                 self.advance();
@@ -223,7 +255,11 @@ impl Parser {
                 let operand1 = self.expect_variable_or_type()?;
                 let operand2 = self.expect_variable_or_type()?;
                 self.expect(Token::Period)?;
-                Ok(ProcedureStatement::Multiply { target, operand1, operand2 })
+                Ok(ProcedureStatement::Multiply {
+                    target,
+                    operand1,
+                    operand2,
+                })
             }
             Token::Divide => {
                 self.advance();
@@ -231,7 +267,84 @@ impl Parser {
                 let operand1 = self.expect_variable_or_type()?;
                 let operand2 = self.expect_variable_or_type()?;
                 self.expect(Token::Period)?;
-                Ok(ProcedureStatement::Divide { target, operand1, operand2 })
+                Ok(ProcedureStatement::Divide {
+                    target,
+                    operand1,
+                    operand2,
+                })
+            }
+            Token::Concatenate => {
+                self.advance();
+                let target = self.expect_variable_or_type()?;
+                let mut operands = Vec::new();
+                while self.current() != &Token::Period {
+                    operands.push(self.expect_variable_or_type()?);
+                }
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Concatenate { target, operands })
+            }
+            Token::Substring => {
+                self.advance();
+                let target = self.expect_variable_or_type()?;
+                let source = self.expect_variable_or_type()?;
+                let start = self.expect_variable_or_type()?;
+                let length = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Substring {
+                    target,
+                    source,
+                    start,
+                    length,
+                })
+            }
+            Token::Length => {
+                self.advance();
+                let target = self.expect_variable_or_type()?;
+                let source = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Length { target, source })
+            }
+            Token::Open => {
+                self.advance();
+                let file_handle = self.expect_variable_or_type()?;
+                self.expect(Token::As)?;
+                let file_path = self.expect_string()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Open { file_handle, file_path })
+            }
+            Token::ReadFile => {
+                self.advance();
+                let file_handle = self.expect_variable_or_type()?;
+                self.expect(Token::As)?;
+                let output_stream = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::ReadFile { file_handle, output_stream })
+            }
+            Token::WriteFile => {
+                self.advance();
+                let file_handle = self.expect_variable_or_type()?;
+                self.expect(Token::As)?;
+                let input_stream = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::WriteFile { file_handle, input_stream })
+            }
+            Token::Close => {
+                self.advance();
+                let file_handle = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Close { file_handle })
+            }
+            Token::Checkpoint => {
+                self.advance();
+                let record_stream = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Checkpoint { record_stream })
+            }
+            Token::Replay => {
+                self.advance();
+                let target = self.expect_variable_or_type()?;
+                self.expect(Token::Period)?;
+                Ok(ProcedureStatement::Replay { target })
             }
             _ => Err(format!("Unexpected token in block: {}", self.current())),
         }
@@ -369,6 +482,18 @@ impl Parser {
                             self.advance();
                             DataType::ParquetTable
                         }
+                        Token::TextString => {
+                            self.advance();
+                            DataType::TextString
+                        }
+                        Token::NumberInteger => {
+                            self.advance();
+                            DataType::NumberInteger
+                        }
+                        Token::NumberDecimal => {
+                            self.advance();
+                            DataType::NumberDecimal
+                        }
                         _ => {
                             return Err(format!("Expected data type, got {}", self.current()));
                         }
@@ -386,6 +511,11 @@ impl Parser {
                         DataType::JsonObject => "JSON-OBJECT".to_string(),
                         DataType::XmlDocument => "XML-DOCUMENT".to_string(),
                         DataType::ParquetTable => "PARQUET-TABLE".to_string(),
+                        DataType::TextString => "TEXT-STRING".to_string(),
+                        DataType::NumberInteger => "NUMBER-INTEGER".to_string(),
+                        DataType::NumberDecimal => "NUMBER-DECIMAL".to_string(),
+                        DataType::FileHandle => "FILE-HANDLE".to_string(),
+                        DataType::RecordStream => "RECORD-STREAM".to_string(),
                     };
 
                     if self.current() == &Token::As {
@@ -458,7 +588,17 @@ impl Parser {
                 Token::Filter => {
                     self.advance();
                     let target = self.expect_variable_or_type()?;
-                    let condition = self.expect_identifier()?;
+                    // condition may consist of an operation name plus an optional
+                    // argument (e.g. "contains foo").  We parse the first
+                    // identifier and then, if the next token is not a period, treat
+                    // it as a second identifier and concatenate them with a space.
+                    let op = self.expect_identifier()?;
+                    let condition = if self.current() != &Token::Period {
+                        let arg = self.expect_identifier()?;
+                        format!("{} {}", op, arg)
+                    } else {
+                        op
+                    };
                     self.expect(Token::Period)?;
                     ProcedureStatement::Filter { target, condition }
                 }
@@ -533,6 +673,92 @@ impl Parser {
                     let target = self.expect_variable_or_type()?;
                     self.expect(Token::Period)?;
                     ProcedureStatement::Read { target }
+                }
+                Token::Set => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let value = self.expect_string()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Set { target, value }
+                }
+                Token::Add => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let operand1 = self.expect_variable_or_type()?;
+                    let operand2 = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Add {
+                        target,
+                        operand1,
+                        operand2,
+                    }
+                }
+                Token::Subtract => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let operand1 = self.expect_variable_or_type()?;
+                    let operand2 = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Subtract {
+                        target,
+                        operand1,
+                        operand2,
+                    }
+                }
+                Token::Multiply => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let operand1 = self.expect_variable_or_type()?;
+                    let operand2 = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Multiply {
+                        target,
+                        operand1,
+                        operand2,
+                    }
+                }
+                Token::Divide => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let operand1 = self.expect_variable_or_type()?;
+                    let operand2 = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Divide {
+                        target,
+                        operand1,
+                        operand2,
+                    }
+                }
+                Token::Concatenate => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let mut operands = Vec::new();
+                    while self.current() != &Token::Period {
+                        operands.push(self.expect_variable_or_type()?);
+                    }
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Concatenate { target, operands }
+                }
+                Token::Substring => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let source = self.expect_variable_or_type()?;
+                    let start = self.expect_variable_or_type()?;
+                    let length = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Substring {
+                        target,
+                        source,
+                        start,
+                        length,
+                    }
+                }
+                Token::Length => {
+                    self.advance();
+                    let target = self.expect_variable_or_type()?;
+                    let source = self.expect_variable_or_type()?;
+                    self.expect(Token::Period)?;
+                    ProcedureStatement::Length { target, source }
                 }
                 Token::If => {
                     self.advance();

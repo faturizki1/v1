@@ -63,12 +63,25 @@ pub enum Token {
     Print,
     Read,
 
+    // File operations (storage)
+    Open,
+    ReadFile,
+    WriteFile,
+    Close,
+    Checkpoint,
+    Replay,
+
     // Arithmetic operations
     Set,
     Add,
     Subtract,
     Multiply,
     Divide,
+
+    // String operations
+    Concatenate,
+    Substring,
+    Length,
 
     // Control flow
     If,
@@ -99,6 +112,11 @@ pub enum Token {
     JsonObject,
     XmlDocument,
     ParquetTable,
+    TextString,
+    NumberInteger,
+    NumberDecimal,
+    FileHandle,
+    RecordStream,
 
     // Literals and punctuation
     Identifier(String),
@@ -125,6 +143,12 @@ impl fmt::Display for Token {
             Token::Display => write!(f, "DISPLAY"),
             Token::Print => write!(f, "PRINT"),
             Token::Read => write!(f, "READ"),
+            Token::Open => write!(f, "OPEN"),
+            Token::ReadFile => write!(f, "READ-FILE"),
+            Token::WriteFile => write!(f, "WRITE-FILE"),
+            Token::Close => write!(f, "CLOSE"),
+            Token::Checkpoint => write!(f, "CHECKPOINT"),
+            Token::Replay => write!(f, "REPLAY"),
             Token::Set => write!(f, "SET"),
             Token::Add => write!(f, "ADD"),
             Token::Subtract => write!(f, "SUBTRACT"),
@@ -261,6 +285,9 @@ fn keyword_to_token(s: &str) -> Token {
         "SUBTRACT" => Token::Subtract,
         "MULTIPLY" => Token::Multiply,
         "DIVIDE" => Token::Divide,
+        "CONCATENATE" => Token::Concatenate,
+        "SUBSTRING" => Token::Substring,
+        "LENGTH" => Token::Length,
         "VIDEO-MP4" => Token::VideoMp4,
         "IMAGE-JPG" => Token::ImageJpg,
         "FINANCIAL-DECIMAL" => Token::FinancialDecimal,
@@ -270,6 +297,9 @@ fn keyword_to_token(s: &str) -> Token {
         "JSON-OBJECT" => Token::JsonObject,
         "XML-DOCUMENT" => Token::XmlDocument,
         "PARQUET-TABLE" => Token::ParquetTable,
+        "TEXT-STRING" => Token::TextString,
+        "NUMBER-INTEGER" => Token::NumberInteger,
+        "NUMBER-DECIMAL" => Token::NumberDecimal,
         "IF" => Token::If,
         "ELSE" => Token::Else,
         "THEN" => Token::Then,
@@ -285,6 +315,14 @@ fn keyword_to_token(s: &str) -> Token {
         "END-FUNCTION" => Token::EndFunction,
         "PARAMETERS" => Token::Parameters,
         "RETURNS" => Token::Returns,
+        "OPEN" => Token::Open,
+        "READ-FILE" => Token::ReadFile,
+        "WRITE-FILE" => Token::WriteFile,
+        "CLOSE" => Token::Close,
+        "CHECKPOINT" => Token::Checkpoint,
+        "REPLAY" => Token::Replay,
+        "FILE-HANDLE" => Token::FileHandle,
+        "RECORD-STREAM" => Token::RecordStream,
         _ => Token::Identifier(s.to_string()),
     }
 }

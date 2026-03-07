@@ -48,6 +48,11 @@ pub enum DataType {
     JsonObject,
     XmlDocument,
     ParquetTable,
+    TextString,
+    NumberInteger,
+    NumberDecimal,
+    FileHandle,
+    RecordStream,
 }
 
 impl std::fmt::Display for DataType {
@@ -62,6 +67,11 @@ impl std::fmt::Display for DataType {
             DataType::JsonObject => write!(f, "JSON-OBJECT"),
             DataType::XmlDocument => write!(f, "XML-DOCUMENT"),
             DataType::ParquetTable => write!(f, "PARQUET-TABLE"),
+            DataType::TextString => write!(f, "TEXT-STRING"),
+            DataType::NumberInteger => write!(f, "NUMBER-INTEGER"),
+            DataType::NumberDecimal => write!(f, "NUMBER-DECIMAL"),
+            DataType::FileHandle => write!(f, "FILE-HANDLE"),
+            DataType::RecordStream => write!(f, "RECORD-STREAM"),
         }
     }
 }
@@ -151,6 +161,20 @@ pub enum ProcedureStatement {
         operand1: String,
         operand2: String,
     },
+    Concatenate {
+        target: String,
+        operands: Vec<String>,
+    },
+    Substring {
+        target: String,
+        source: String,
+        start: String,
+        length: String,
+    },
+    Length {
+        target: String,
+        source: String,
+    },
     If {
         condition: String,
         then_statements: Vec<Box<ProcedureStatement>>,
@@ -174,6 +198,27 @@ pub enum ProcedureStatement {
     FunctionCall {
         name: String,
         arguments: Vec<String>,
+    },
+    Open {
+        file_handle: String,
+        file_path: String,
+    },
+    ReadFile {
+        file_handle: String,
+        output_stream: String,
+    },
+    WriteFile {
+        file_handle: String,
+        input_stream: String,
+    },
+    Close {
+        file_handle: String,
+    },
+    Checkpoint {
+        record_stream: String,
+    },
+    Replay {
+        target: String,
     },
 }
 
