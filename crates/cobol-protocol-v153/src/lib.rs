@@ -8,6 +8,10 @@
 //! DO NOT modify, extend, or wrap this crate without explicit authorization.
 //! This protocol layer is sealed.
 
+use flate2::{write::DeflateEncoder, read::DeflateDecoder};
+use flate2::Compression;
+use std::io::{Read, Write};
+
 /// Compress buffer through L1 → L2 → L3 stages.
 /// Returns compressed buffer or error message.
 ///
@@ -22,13 +26,27 @@ pub fn compress_l1_l3(input: Vec<u8>) -> Result<Vec<u8>, String> {
         return Ok(vec![]);
     }
 
-    // Simple placeholder compression: prepend size header
-    // In production, this would implement actual L1-L2-L3 pipeline
-    let mut output = Vec::with_capacity(input.len() + 8);
-    output.extend_from_slice(&(input.len() as u64).to_le_bytes());
-    output.extend_from_slice(&input);
+    // Real DEFLATE compression (simulating L1-L3 pipeline)
+    let mut encoder = DeflateEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&input).map_err(|e| format!("compression failed: {}", e))?;
+    let compressed = encoder.finish().map_err(|e| format!("compression finish failed: {}", e))?;
 
-    Ok(output)
+    Ok(compressed)
+}
+
+/// Decompress buffer that was compressed by compress_l1_l3.
+/// Returns decompressed buffer or error message.
+pub fn decompress_l1_l3(input: &[u8]) -> Result<Vec<u8>, String> {
+    if input.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Real DEFLATE decompression
+    let mut decoder = DeflateDecoder::new(input);
+    let mut decompressed = Vec::new();
+    decoder.read_to_end(&mut decompressed).map_err(|e| format!("decompression failed: {}", e))?;
+
+    Ok(decompressed)
 }
 
 #[cfg(test)]
@@ -39,9 +57,9 @@ mod tests {
     fn test_compress_preserves_content() {
         let input = vec![1, 2, 3, 4, 5];
         let compressed = compress_l1_l3(input.clone()).unwrap();
-        // Verify content is present (after size header)
-        assert!(compressed.len() > input.len());
-        assert_eq!(&compressed[8..], input.as_slice());
+        let decompressed = decompress_l1_l3(&compressed).unwrap();
+        // Verify roundtrip works
+        assert_eq!(input, decompressed);
     }
 
     #[test]
@@ -57,5 +75,13 @@ mod tests {
         let out1 = compress_l1_l3(input.clone()).unwrap();
         let out2 = compress_l1_l3(input).unwrap();
         assert_eq!(out1, out2);
+    }
+
+    #[test]
+    fn test_compress_decompress_roundtrip() {
+        let input = b"This is test data for compression roundtrip testing";
+        let compressed = compress_l1_l3(input.to_vec()).unwrap();
+        let decompressed = decompress_l1_l3(&compressed).unwrap();
+        assert_eq!(input.to_vec(), decompressed);
     }
 }

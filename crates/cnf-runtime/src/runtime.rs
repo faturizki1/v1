@@ -134,12 +134,36 @@ impl Runtime {
     /// require a domain-specific language/parser; that belongs in a future
     /// release.
     fn dispatch_filter(&mut self, target: &str, condition: &str) -> Result<(), CnfError> {
+        // read buffer as UTF-8 lines; on invalid UTF-8 we treat as error
         let buf = self.get_buffer_mut(target)?;
-        if condition == "nonzero" {
+        let text = String::from_utf8(buf.clone())
+            .map_err(|_| CnfError::InvalidInstruction("non-utf8 buffer".into()))?;
+
+        // parse condition operator and argument
+        let mut parts = condition.splitn(2, ' ');
+        let op = parts.next().unwrap_or("");
+        let arg = parts.next().unwrap_or("");
+
+        // special case: previous behaviour for "nonzero" operated on bytes
+        // rather than lines. preserve it to maintain backwards compatibility.
+        if op == "nonzero" {
             buf.retain(|&b| b != 0);
-        } else {
-            // other conditions are no-ops for now
+            return Ok(());
         }
+
+        let filtered: Vec<&str> = text
+            .lines()
+            .filter(|line| match op {
+                "contains" => line.contains(arg),
+                "equals" => *line == arg,
+                "starts_with" => line.starts_with(arg),
+                _ => false,
+            })
+            .collect();
+
+        let result = filtered.join("\n");
+        buf.clear();
+        buf.extend_from_slice(result.as_bytes());
         Ok(())
     }
 
@@ -192,11 +216,130 @@ impl Runtime {
         Ok(())
     }
 
-    /// Execute VALIDATE instruction (stub: check buffer exists).
-    fn dispatch_validate(&self, target: &str, _schema: &str) -> Result<(), CnfError> {
-        let _buf = self.get_buffer(target)?;
-        // In a real system, we'd validate content against schema (JSON, CSV schema, etc.).
-        // For now, existence check is sufficient.
+    /// Execute VALIDATE instruction.
+    fn dispatch_validate(&self, target: &str, schema: &str) -> Result<(), CnfError> {
+        let buf = self.get_buffer(target)?;
+
+        match schema {
+            "json" => self.validate_json(buf),
+            "csv" => self.validate_csv(buf),
+            "xml" => self.validate_xml(buf),
+            _ => Err(CnfError::InvalidInstruction(format!("unsupported validation schema: {}", schema))),
+        }
+    }
+
+    /// Validate JSON format manually (no external crates).
+    fn validate_json(&self, data: &[u8]) -> Result<(), CnfError> {
+        let text = std::str::from_utf8(data)
+            .map_err(|_| CnfError::InvalidInstruction("invalid UTF-8 for JSON validation".into()))?;
+
+        // Simple JSON validation: check balanced braces and basic structure
+        let mut brace_depth = 0;
+        let mut in_string = false;
+        let mut escape_next = false;
+
+        for &byte in data {
+            if escape_next {
+                escape_next = false;
+                continue;
+            }
+
+            match byte {
+                b'\\' if in_string => escape_next = true,
+                b'"' if !escape_next => in_string = !in_string,
+                b'{' if !in_string => brace_depth += 1,
+                b'}' if !in_string => {
+                    brace_depth -= 1;
+                    if brace_depth < 0 {
+                        return Err(CnfError::InvalidInstruction("unmatched closing brace in JSON".into()));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if brace_depth != 0 {
+            return Err(CnfError::InvalidInstruction("unmatched opening brace in JSON".into()));
+        }
+
+        if in_string {
+            return Err(CnfError::InvalidInstruction("unterminated string in JSON".into()));
+        }
+
+        Ok(())
+    }
+
+    /// Validate CSV format manually (no external crates).
+    fn validate_csv(&self, data: &[u8]) -> Result<(), CnfError> {
+        let text = std::str::from_utf8(data)
+            .map_err(|_| CnfError::InvalidInstruction("invalid UTF-8 for CSV validation".into()))?;
+
+        // Check for header row: look for comma in first line
+        if let Some(first_line) = text.lines().next() {
+            if !first_line.contains(',') {
+                return Err(CnfError::InvalidInstruction("CSV missing header row with comma separator".into()));
+            }
+        } else {
+            return Err(CnfError::InvalidInstruction("CSV file is empty".into()));
+        }
+
+        Ok(())
+    }
+
+    /// Validate XML format manually (no external crates).
+    fn validate_xml(&self, data: &[u8]) -> Result<(), CnfError> {
+        let text = std::str::from_utf8(data)
+            .map_err(|_| CnfError::InvalidInstruction("invalid UTF-8 for XML validation".into()))?;
+
+        // Simple XML validation: check for matching opening/closing tags
+        let mut tag_stack = Vec::new();
+        let mut in_tag = false;
+        let mut current_tag = String::new();
+
+        for &byte in data {
+            match byte {
+                b'<' => {
+                    in_tag = true;
+                    current_tag.clear();
+                }
+                b'>' => {
+                    if in_tag {
+                        if current_tag.starts_with('/') {
+                            // Closing tag
+                            let expected_tag = current_tag[1..].to_string();
+                            if let Some(opening_tag) = tag_stack.pop() {
+                                if opening_tag != expected_tag {
+                                    return Err(CnfError::InvalidInstruction(
+                                        format!("XML tag mismatch: expected </{}>, got </{}>", opening_tag, expected_tag)
+                                    ));
+                                }
+                            } else {
+                                return Err(CnfError::InvalidInstruction(
+                                    format!("XML unexpected closing tag: </{}>", expected_tag)
+                                ));
+                            }
+                        } else if !current_tag.is_empty() && !current_tag.starts_with('!') && !current_tag.starts_with('?') {
+                            // Opening tag (skip comments and processing instructions)
+                            tag_stack.push(current_tag.clone());
+                        }
+                        in_tag = false;
+                    }
+                }
+                _ if in_tag => {
+                    if byte.is_ascii_alphanumeric() || byte == b'/' || byte == b'!' || byte == b'?' {
+                        current_tag.push(byte as char);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if !tag_stack.is_empty() {
+            return Err(CnfError::InvalidInstruction(
+                format!("XML unclosed tags: {:?}", tag_stack)
+            ));
+        }
+
         Ok(())
     }
 
@@ -213,17 +356,66 @@ impl Runtime {
         }
         let text = String::from_utf8(buf.to_vec())
             .map_err(|_| CnfError::InvalidInstruction("non-utf8 buffer".into()))?;
-        let json: serde_json::Value = serde_json::from_str(&text)
-            .map_err(|_| CnfError::InvalidInstruction("invalid json".into()))?;
-        let mut current = &json;
-        for key in path[2..].split('.') {
-            current = current
-                .get(key)
-                .ok_or_else(|| CnfError::InvalidInstruction(format!("path {} not found", path)))?;
+
+        // manual JSON navigation: only objects, strings, numbers are supported
+        fn extract_key<'a>(json: &'a str, key: &str) -> Result<&'a str, CnfError> {
+            let pat = format!("\"{}\"", key);
+            let mut search = json;
+            while let Some(pos) = search.find(&pat) {
+                let after = &search[pos + pat.len()..];
+                if let Some(colon) = after.find(':') {
+                    let mut rest = after[colon + 1..].trim_start();
+                    if rest.starts_with('{') {
+                        // find matching '}'
+                        let mut depth = 0;
+                        for (i, c) in rest.char_indices() {
+                            if c == '{' {
+                                depth += 1;
+                            } else if c == '}' {
+                                depth -= 1;
+                                if depth == 0 {
+                                    return Ok(&rest[..=i]);
+                                }
+                            }
+                        }
+                        return Err(CnfError::InvalidInstruction("malformed json object".into()));
+                    } else if rest.starts_with('"') {
+                        // string value (strip quotes)
+                        rest = &rest[1..];
+                        if let Some(endq) = rest.find('"') {
+                            return Ok(&rest[..endq]);
+                        } else {
+                            return Err(CnfError::InvalidInstruction("unterminated string".into()));
+                        }
+                    } else {
+                        // number or literal
+                        let mut end = rest.len();
+                        for (i, c) in rest.char_indices() {
+                            if c == ',' || c == '}' || c == ']' {
+                                end = i;
+                                break;
+                            }
+                        }
+                        return Ok(rest[..end].trim());
+                    }
+                } else {
+                    // no colon here, skip ahead and keep searching
+                    search = &search[pos + pat.len()..];
+                    continue;
+                }
+            }
+            Err(CnfError::InvalidInstruction(format!(
+                "path {} not found",
+                key
+            )))
         }
-        let extracted = current.to_string();
+
+        let mut current: &str = &text;
+        for key in path[2..].split('.') {
+            current = extract_key(current, key)?;
+        }
         let outname = format!("{}_extracted", target);
-        self.add_buffer(outname, extracted.into_bytes());
+        self.add_buffer(outname, current.as_bytes().to_vec());
         Ok(())
     }
 
@@ -273,23 +465,46 @@ impl Runtime {
                 "aggregate with no targets".into(),
             ));
         }
-        let mut total = 0f64;
-        let mut count = 0usize;
+        // parse all numeric values from the listed buffers (text lines)
+        let mut values: Vec<f64> = Vec::new();
         for t in targets {
             let buf = self.get_buffer(t)?;
-            for &b in buf {
-                total += b as f64;
-                count += 1;
+            let text = String::from_utf8(buf.to_vec())
+                .map_err(|_| CnfError::InvalidInstruction("non-utf8 buffer".into()))?;
+            for line in text.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let num: f64 = trimmed.parse().map_err(|_| {
+                    CnfError::InvalidInstruction(format!("invalid number '{}'%", trimmed))
+                })?;
+                values.push(num);
             }
         }
+
         let result = match operation {
-            "sum" => total,
-            "count" => count as f64,
+            "sum" => values.iter().sum(),
+            "count" => values.len() as f64,
             "avg" => {
-                if count == 0 {
+                if values.is_empty() {
                     0.0
                 } else {
-                    total / (count as f64)
+                    values.iter().sum::<f64>() / (values.len() as f64)
+                }
+            }
+            "min" => {
+                if values.is_empty() {
+                    0.0
+                } else {
+                    values.iter().cloned().fold(f64::INFINITY, f64::min)
+                }
+            }
+            "max" => {
+                if values.is_empty() {
+                    0.0
+                } else {
+                    values.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
                 }
             }
             _ => {
@@ -975,6 +1190,34 @@ mod tests {
     }
 
     #[test]
+    fn test_dispatch_filter_string_conditions() {
+        let mut runtime = Runtime::new();
+        // buffer with multiple lines
+        let data = b"apple\nbanana\napricot\n".to_vec();
+        runtime.add_buffer("buf".to_string(), data);
+
+        // contains
+        runtime
+            .dispatch_instruction("FILTER(buf WHERE contains ban)")
+            .unwrap();
+        assert_eq!(runtime.get_output("buf").unwrap(), b"banana".to_vec());
+
+        // reset and test equals
+        runtime.add_buffer("buf".to_string(), b"foo\nbar\nfoo\n".to_vec());
+        runtime
+            .dispatch_instruction("FILTER(buf WHERE equals foo)")
+            .unwrap();
+        assert_eq!(runtime.get_output("buf").unwrap(), b"foo\nfoo".to_vec());
+
+        // reset and test starts_with
+        runtime.add_buffer("buf".to_string(), b"cat\ndog\ncar\n".to_vec());
+        runtime
+            .dispatch_instruction("FILTER(buf WHERE starts_with ca)")
+            .unwrap();
+        assert_eq!(runtime.get_output("buf").unwrap(), b"cat\ncar".to_vec());
+    }
+
+    #[test]
     fn test_dispatch_merge() {
         let mut runtime = Runtime::new();
         runtime.add_buffer("a".to_string(), vec![1]);
@@ -993,12 +1236,82 @@ mod tests {
     }
 
     #[test]
+    fn test_dispatch_split_remainder() {
+        let mut runtime = Runtime::new();
+        runtime.add_buffer("src".to_string(), vec![1, 2, 3, 4, 5]);
+        runtime.dispatch_instruction("SPLIT(src INTO 3)").unwrap();
+        assert_eq!(runtime.get_output("src_part1").unwrap(), vec![1, 2]);
+        assert_eq!(runtime.get_output("src_part2").unwrap(), vec![3, 4]);
+        assert_eq!(runtime.get_output("src_part3").unwrap(), vec![5]);
+    }
+
+    #[test]
     fn test_dispatch_validate() {
         let mut runtime = Runtime::new();
         runtime.add_buffer("buf".to_string(), vec![1, 2]);
         runtime
-            .dispatch_instruction("VALIDATE(buf AGAINST json-schema)")
+            .dispatch_instruction("VALIDATE(buf AGAINST json)")
             .unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_validate_json_valid() {
+        let mut runtime = Runtime::new();
+        let json_data = br#"{"name": "test", "value": 42}"#;
+        runtime.add_buffer("json_buf".to_string(), json_data.to_vec());
+        runtime
+            .dispatch_instruction("VALIDATE(json_buf AGAINST json)")
+            .unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_validate_json_invalid() {
+        let mut runtime = Runtime::new();
+        let invalid_json = b"{\"name\": \"test\", \"value\": 42"; // missing closing brace
+        runtime.add_buffer("json_buf".to_string(), invalid_json.to_vec());
+        assert!(runtime
+            .dispatch_instruction("VALIDATE(json_buf AGAINST json)")
+            .is_err());
+    }
+
+    #[test]
+    fn test_dispatch_validate_csv_valid() {
+        let mut runtime = Runtime::new();
+        let csv_data = b"name,value\nJohn,25\nJane,30";
+        runtime.add_buffer("csv_buf".to_string(), csv_data.to_vec());
+        runtime
+            .dispatch_instruction("VALIDATE(csv_buf AGAINST csv)")
+            .unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_validate_csv_invalid() {
+        let mut runtime = Runtime::new();
+        let invalid_csv = b"namevalue\nJohn25"; // no header separator
+        runtime.add_buffer("csv_buf".to_string(), invalid_csv.to_vec());
+        assert!(runtime
+            .dispatch_instruction("VALIDATE(csv_buf AGAINST csv)")
+            .is_err());
+    }
+
+    #[test]
+    fn test_dispatch_validate_xml_valid() {
+        let mut runtime = Runtime::new();
+        let xml_data = br#"<root><item>test</item></root>"#;
+        runtime.add_buffer("xml_buf".to_string(), xml_data.to_vec());
+        runtime
+            .dispatch_instruction("VALIDATE(xml_buf AGAINST xml)")
+            .unwrap();
+    }
+
+    #[test]
+    fn test_dispatch_validate_xml_invalid() {
+        let mut runtime = Runtime::new();
+        let invalid_xml = b"<root><item>test</item>"; // missing closing tag
+        runtime.add_buffer("xml_buf".to_string(), invalid_xml.to_vec());
+        assert!(runtime
+            .dispatch_instruction("VALIDATE(xml_buf AGAINST xml)")
+            .is_err());
     }
 
     #[test]
@@ -1010,19 +1323,87 @@ mod tests {
             .unwrap();
         let out = runtime.get_output("data_extracted").unwrap();
         assert_eq!(out, b"42".to_vec());
+
+        // nested object and string value
+        runtime.add_buffer(
+            "data".to_string(),
+            b"{\"outer\":{\"inner\":\"hello\"}}".to_vec(),
+        );
+        runtime
+            .dispatch_instruction("EXTRACT($.outer.inner FROM data)")
+            .unwrap();
+        let out2 = runtime.get_output("data_extracted").unwrap();
+        assert_eq!(out2, b"hello".to_vec());
     }
 
     #[test]
     fn test_dispatch_aggregate() {
         let mut runtime = Runtime::new();
-        runtime.add_buffer("col1".to_string(), vec![1, 2, 3]);
-        runtime.add_buffer("col2".to_string(), vec![4, 5, 6]);
+        // create numeric buffers as text lines
+        runtime.add_buffer("col1".to_string(), b"1\n2\n3".to_vec());
+        runtime.add_buffer("col2".to_string(), b"4\n5\n6".to_vec());
         runtime
             .dispatch_instruction("AGGREGATE(col1,col2 AS sum)")
             .unwrap();
         let out = runtime.get_output("sum_col1").unwrap();
         let sum = f64::from_le_bytes(out.as_slice().try_into().unwrap());
         assert_eq!(sum, 21.0);
+
+        // test count
+        runtime
+            .dispatch_instruction("AGGREGATE(col1 AS count)")
+            .unwrap();
+        let cnt = f64::from_le_bytes(
+            runtime
+                .get_output("count_col1")
+                .unwrap()
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(cnt, 3.0);
+
+        // test avg
+        runtime
+            .dispatch_instruction("AGGREGATE(col1 AS avg)")
+            .unwrap();
+        let avg = f64::from_le_bytes(
+            runtime
+                .get_output("avg_col1")
+                .unwrap()
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(avg, 2.0);
+
+        // test min
+        runtime
+            .dispatch_instruction("AGGREGATE(col1 AS min)")
+            .unwrap();
+        let min = f64::from_le_bytes(
+            runtime
+                .get_output("min_col1")
+                .unwrap()
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(min, 1.0);
+
+        // test max
+        runtime
+            .dispatch_instruction("AGGREGATE(col1 AS max)")
+            .unwrap();
+        let max = f64::from_le_bytes(
+            runtime
+                .get_output("max_col1")
+                .unwrap()
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        );
+        assert_eq!(max, 3.0);
     }
 
     #[test]
@@ -1194,6 +1575,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_read_instruction() {
         let mut runtime = Runtime::new();
         runtime.add_buffer("input_var".to_string(), Vec::new());

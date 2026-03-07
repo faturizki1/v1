@@ -104,3 +104,57 @@ fn test_runtime_dispatches_first_instruction() {
         .stdout(predicate::str::contains("BUFFER MYBUF:"))
         .stdout(predicate::str::contains(format!("BUFFER MYBUF: {}", hex_buf)).not());
 }
+
+#[test]
+fn test_cli_run_performs_filter() {
+    let source = r#"
+        IDENTIFICATION DIVISION.
+            PROGRAM-ID. CliFilter.
+        ENVIRONMENT DIVISION.
+            OS "Linux".
+        DATA DIVISION.
+            INPUT TEXT-STRING AS BUF.
+        PROCEDURE DIVISION.
+            FILTER BUF contains foo.
+    "#;
+    let path = write_temp_cnf(source);
+    // hex for "foo\nbar\nfoo"
+    let buf = hex::encode(b"foo\nbar\nfoo");
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_centra-nf"));
+    cmd.arg("run")
+        .arg(&path)
+        .arg("--buffer")
+        .arg(&buf)
+        .arg("--verbose");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("BUFFER BUF:"));
+}
+
+#[test]
+fn test_cli_run_performs_aggregate() {
+    let source = r#"
+        IDENTIFICATION DIVISION.
+            PROGRAM-ID. CliAgg.
+        ENVIRONMENT DIVISION.
+            OS "Linux".
+        DATA DIVISION.
+            INPUT FINANCIAL-DECIMAL AS COL.
+        PROCEDURE DIVISION.
+            AGGREGATE COL sum.
+    "#;
+    let path = write_temp_cnf(source);
+    // numbers 1,2,3 separated by newline
+    let buf = hex::encode(b"1\n2\n3");
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_centra-nf"));
+    cmd.arg("run")
+        .arg(&path)
+        .arg("--buffer")
+        .arg(&buf)
+        .arg("--verbose");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("sum_COL:"));
+}

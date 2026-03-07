@@ -544,7 +544,17 @@ impl Parser {
                 Token::Filter => {
                     self.advance();
                     let target = self.expect_variable_or_type()?;
-                    let condition = self.expect_identifier()?;
+                    // condition may consist of an operation name plus an optional
+                    // argument (e.g. "contains foo").  We parse the first
+                    // identifier and then, if the next token is not a period, treat
+                    // it as a second identifier and concatenate them with a space.
+                    let op = self.expect_identifier()?;
+                    let condition = if self.current() != &Token::Period {
+                        let arg = self.expect_identifier()?;
+                        format!("{} {}", op, arg)
+                    } else {
+                        op
+                    };
                     self.expect(Token::Period)?;
                     ProcedureStatement::Filter { target, condition }
                 }
