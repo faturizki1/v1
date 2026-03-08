@@ -3,15 +3,20 @@ members = [
     "crates/cnf-compiler",
     "crates/cnf-runtime",
     "crates/cnf-security",
-    "crates/cobol-protocol-v153",
+    "crates/cnf-storage",
     "crates/cnf-stdlib",
+    "crates/cnf-network",
+    "crates/cnf-verifier",
+    "crates/cnf-quantum",
+    "crates/cobol-protocol-v153",
     "crates/centra-nf-cli",
     "crates/centra-nf-lsp",
+    "crates/cnf-governance",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["CENTRA-NF Dev Team"]
 license = "Proprietary"

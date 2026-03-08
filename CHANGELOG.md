@@ -4,6 +4,62 @@ All notable changes to CENTRA-NF are documented in this file.
 
 ---
 
+## [1.0.0] – 2026-03-08 – Stable Release with Governance Enforcement
+
+**Release Focus:** Production-ready CENTRA-NF with complete GOVERNANCE DIVISION runtime enforcement, access control, and compliance features.
+
+### ✨ New Features
+
+#### GOVERNANCE DIVISION – Complete Implementation
+- **Runtime Governance Enforcement**: Full dispatch support for all governance instructions
+  - Policy storage and LTL formula management
+  - Regulation compliance tracking
+  - Access control enforcement on core operations
+  - Audit ledger for compliance logging
+  - Decision quorum support
+
+- **Access Control System**: Runtime enforcement of user/resource/action permissions
+  - Allow-list semantics for secure operations
+  - Integration with COMPRESS, VERIFY-INTEGRITY, ENCRYPT, DECRYPT operations
+  - Fail-fast access denied errors with detailed messages
+  - Deterministic enforcement across executions
+
+- **Governance State Management**: Complete governance context in runtime
+  - Policies, regulations, and access rules stored per-runtime instance
+  - No global mutable state (maintains architectural purity)
+  - Thread-safe enforcement via ownership model
+
+#### Production Readiness
+- **Stable API**: All public interfaces finalized for v1.0.0
+- **Comprehensive Testing**: 50+ tests including governance E2E scenarios
+- **Documentation**: Complete specification with GOVERNANCE DIVISION
+- **CI/CD Validation**: All quality gates passing
+
+### 🔧 Technical Improvements
+
+#### Runtime Architecture
+- **Governance Dispatch**: Added match arms for Policy, Regulation, AccessControl, etc.
+- **Access Control Helper**: `check_access_control()` method for enforcement
+- **State Management**: Governance fields in Runtime struct
+- **Error Handling**: Explicit governance violation errors
+
+#### Quality Assurance
+- **Test Coverage**: New governance E2E tests
+- **Example Programs**: `governance_demo.cnf` demonstrating features
+- **Specification Updates**: GOVERNANCE DIVISION documentation
+
+### 🏗️ Architecture Compliance
+- **Layer Discipline**: Maintained (runtime handles governance, no cross-layer calls)
+- **Determinism**: Guaranteed (same governance rules → same behavior)
+- **Zero Global State**: Enforced (governance owned by runtime instances)
+- **Fail-Fast**: Access violations produce immediate errors
+
+### 📦 Breaking Changes
+- **Version Bump**: All crates updated to 1.0.0
+- **Governance Enforcement**: Operations now check access controls when defined
+
+---
+
 ## [0.3.0] – 2026-03-06 – LSP Enhancements & Editor Integration
 
 **Release Focus:** Language Server Protocol (LSP) rich editor support, comprehensive variable scoping, type validation, and documentation consolidation.

@@ -86,6 +86,46 @@ pub enum Instruction {
         operand1: String,
         operand2: String,
     },
+    Concatenate {
+        target: String,
+        operands: Vec<String>,
+    },
+    Substring {
+        target: String,
+        source: String,
+        start: String,
+        length: String,
+    },
+    Length {
+        target: String,
+        source: String,
+    },
+    Uppercase {
+        target: String,
+        source: String,
+    },
+    Lowercase {
+        target: String,
+        source: String,
+    },
+    Trim {
+        target: String,
+        source: String,
+    },
+    Max {
+        target: String,
+        operand1: String,
+        operand2: String,
+    },
+    Min {
+        target: String,
+        operand1: String,
+        operand2: String,
+    },
+    Abs {
+        target: String,
+        operand: String,
+    },
     IfStatement {
         condition: String,
         then_instrs: Vec<Instruction>,
@@ -109,6 +149,135 @@ pub enum Instruction {
     FunctionCall {
         name: String,
         arguments: Vec<String>,
+    },
+    Open {
+        file_handle: String,
+        file_path: String,
+    },
+    ReadFile {
+        file_handle: String,
+        output_stream: String,
+    },
+    WriteFile {
+        file_handle: String,
+        input_stream: String,
+    },
+    Close {
+        file_handle: String,
+    },
+    Checkpoint {
+        record_stream: String,
+    },
+    Replay {
+        target: String,
+    },
+    SendBuffer {
+        buffer: String,
+        target_node: String,
+    },
+    ReceiveBuffer {
+        buffer: String,
+        source_node: String,
+    },
+    PipeStream {
+        buffer: String,
+        target_node: String,
+        output: String,
+    },
+    CallRemote {
+        node: String,
+        function_name: String,
+        args: Vec<String>,
+        output: String,
+    },
+    PreConditionCheck {
+        predicate: String,
+        location: String,
+    },
+    PostConditionCheck {
+        predicate: String,
+        location: String,
+    },
+    InvariantCheck {
+        predicate: String,
+        location: String,
+    },
+    ProveStatement {
+        target: String,
+        predicate: String,
+    },
+    AssertStatement {
+        target: String,
+        predicate: String,
+    },
+    AuditLogEntry {
+        message: String,
+    },
+    ComplianceReport {
+        standard: String,
+    },
+    QuantumEncrypt {
+        source: String,
+        key_name: String,
+    },
+    QuantumDecrypt {
+        target: String,
+        key_name: String,
+    },
+    QuantumSign {
+        source: String,
+        signing_key: String,
+        output: String,
+    },
+    QuantumVerifySig {
+        source: String,
+        verification_key: String,
+        signature_ref: String,
+    },
+    QuantumSignEncrypt {
+        source: String,
+        recipient_key: String,
+        signing_key: String,
+        output: String,
+    },
+    QuantumVerifyDecrypt {
+        source: String,
+        recipient_key: String,
+        output: String,
+    },
+    GenerateKeyPair {
+        algorithm: String,
+        output_name: String,
+    },
+    LongTermSign {
+        source: String,
+        signing_key: String,
+        output: String,
+    },
+    // Governance instructions (v0.9.0)
+    Policy {
+        name: String,
+        formula: String,
+    },
+    Regulation {
+        standard: String,
+        clause: String,
+    },
+    DataSovereignty {
+        from: String,
+        to: String,
+    },
+    AccessControl {
+        user: String,
+        resource: String,
+        action: String,
+    },
+    AuditLedger {
+        message: String,
+    },
+    DecisionQuorum {
+        votes: String,
+        threshold: String,
     },
 }
 
@@ -176,17 +345,77 @@ impl std::fmt::Display for Instruction {
             Instruction::Set { target, value } => {
                 write!(f, "SET({} = {})", target, value)
             }
-            Instruction::Add { target, operand1, operand2 } => {
+            Instruction::Add {
+                target,
+                operand1,
+                operand2,
+            } => {
                 write!(f, "ADD({} = {} + {})", target, operand1, operand2)
             }
-            Instruction::Subtract { target, operand1, operand2 } => {
+            Instruction::Subtract {
+                target,
+                operand1,
+                operand2,
+            } => {
                 write!(f, "SUBTRACT({} = {} - {})", target, operand1, operand2)
             }
-            Instruction::Multiply { target, operand1, operand2 } => {
+            Instruction::Multiply {
+                target,
+                operand1,
+                operand2,
+            } => {
                 write!(f, "MULTIPLY({} = {} * {})", target, operand1, operand2)
             }
-            Instruction::Divide { target, operand1, operand2 } => {
+            Instruction::Divide {
+                target,
+                operand1,
+                operand2,
+            } => {
                 write!(f, "DIVIDE({} = {} / {})", target, operand1, operand2)
+            }
+            Instruction::Concatenate { target, operands } => {
+                write!(f, "CONCATENATE({} = {})", target, operands.join(" + "))
+            }
+            Instruction::Substring {
+                target,
+                source,
+                start,
+                length,
+            } => {
+                write!(
+                    f,
+                    "SUBSTRING({} = {}[{}..{}])",
+                    target, source, start, length
+                )
+            }
+            Instruction::Length { target, source } => {
+                write!(f, "LENGTH({} = len({}))", target, source)
+            }
+            Instruction::Uppercase { target, source } => {
+                write!(f, "UPPERCASE({} = upper({}))", target, source)
+            }
+            Instruction::Lowercase { target, source } => {
+                write!(f, "LOWERCASE({} = lower({}))", target, source)
+            }
+            Instruction::Trim { target, source } => {
+                write!(f, "TRIM({} = trim({}))", target, source)
+            }
+            Instruction::Max {
+                target,
+                operand1,
+                operand2,
+            } => {
+                write!(f, "MAX({} = max({}, {}))", target, operand1, operand2)
+            }
+            Instruction::Min {
+                target,
+                operand1,
+                operand2,
+            } => {
+                write!(f, "MIN({} = min({}, {}))", target, operand1, operand2)
+            }
+            Instruction::Abs { target, operand } => {
+                write!(f, "ABS({} = abs({}))", target, operand)
             }
             Instruction::IfStatement {
                 condition,
@@ -226,6 +455,188 @@ impl std::fmt::Display for Instruction {
             }
             Instruction::FunctionCall { name, arguments } => {
                 write!(f, "FUNC-CALL({}({})", name, arguments.join(","))
+            }
+            Instruction::Open {
+                file_handle,
+                file_path,
+            } => {
+                write!(f, "OPEN({} AS {})", file_handle, file_path)
+            }
+            Instruction::ReadFile {
+                file_handle,
+                output_stream,
+            } => {
+                write!(f, "READ-FILE({} INTO {})", file_handle, output_stream)
+            }
+            Instruction::WriteFile {
+                file_handle,
+                input_stream,
+            } => {
+                write!(f, "WRITE-FILE({} FROM {})", file_handle, input_stream)
+            }
+            Instruction::Close { file_handle } => {
+                write!(f, "CLOSE({})", file_handle)
+            }
+            Instruction::Checkpoint { record_stream } => {
+                write!(f, "CHECKPOINT({})", record_stream)
+            }
+            Instruction::Replay { target } => {
+                write!(f, "REPLAY({})", target)
+            }
+            Instruction::SendBuffer {
+                buffer,
+                target_node,
+            } => {
+                write!(f, "SEND_BUFFER({} TO {})", buffer, target_node)
+            }
+            Instruction::ReceiveBuffer {
+                buffer,
+                source_node,
+            } => {
+                write!(f, "RECEIVE_BUFFER({} FROM {})", buffer, source_node)
+            }
+            Instruction::PipeStream {
+                buffer,
+                target_node,
+                output,
+            } => {
+                write!(
+                    f,
+                    "PIPE_STREAM({} TO {} -> {})",
+                    buffer, target_node, output
+                )
+            }
+            Instruction::CallRemote {
+                node,
+                function_name,
+                args,
+                output,
+            } => {
+                write!(
+                    f,
+                    "CALL_REMOTE({}:{}({:?}) -> {})",
+                    node, function_name, args, output
+                )
+            }
+            Instruction::PreConditionCheck {
+                predicate,
+                location,
+            } => {
+                write!(f, "PRECONDITION_CHECK({} @ {})", predicate, location)
+            }
+            Instruction::PostConditionCheck {
+                predicate,
+                location,
+            } => {
+                write!(f, "POSTCONDITION_CHECK({} @ {})", predicate, location)
+            }
+            Instruction::InvariantCheck {
+                predicate,
+                location,
+            } => {
+                write!(f, "INVARIANT_CHECK({} @ {})", predicate, location)
+            }
+            Instruction::ProveStatement { target, predicate } => {
+                write!(f, "PROVE({} SATISFIES {})", target, predicate)
+            }
+            Instruction::AssertStatement { target, predicate } => {
+                write!(f, "ASSERT({} SATISFIES {})", target, predicate)
+            }
+            Instruction::AuditLogEntry { message } => {
+                write!(f, "AUDIT_LOG({})", message)
+            }
+            Instruction::ComplianceReport { standard } => {
+                write!(f, "COMPLIANCE_REPORT({})", standard)
+            }
+            Instruction::QuantumEncrypt { source, key_name } => {
+                write!(f, "QUANTUM_ENCRYPT({} WITH {})", source, key_name)
+            }
+            Instruction::QuantumDecrypt { target, key_name } => {
+                write!(f, "QUANTUM_DECRYPT({} WITH {})", target, key_name)
+            }
+            Instruction::QuantumSign {
+                source,
+                signing_key,
+                output,
+            } => {
+                write!(
+                    f,
+                    "QUANTUM_SIGN({} WITH {} AS {})",
+                    source, signing_key, output
+                )
+            }
+            Instruction::QuantumVerifySig {
+                source,
+                verification_key,
+                signature_ref,
+            } => {
+                write!(
+                    f,
+                    "QUANTUM_VERIFY_SIG({} WITH {} SIGNATURE {})",
+                    source, verification_key, signature_ref
+                )
+            }
+            Instruction::QuantumSignEncrypt {
+                source,
+                recipient_key,
+                signing_key,
+                output,
+            } => {
+                write!(
+                    f,
+                    "QUANTUM_SIGN_ENCRYPT({} FOR {} SIGNED_BY {} AS {})",
+                    source, recipient_key, signing_key, output
+                )
+            }
+            Instruction::QuantumVerifyDecrypt {
+                source,
+                recipient_key,
+                output,
+            } => {
+                write!(
+                    f,
+                    "QUANTUM_VERIFY_DECRYPT({} WITH {} AS {})",
+                    source, recipient_key, output
+                )
+            }
+            Instruction::GenerateKeyPair {
+                algorithm,
+                output_name,
+            } => {
+                write!(
+                    f,
+                    "GENERATE_KEYPAIR(ALGORITHM {} AS {})",
+                    algorithm, output_name
+                )
+            }
+            Instruction::LongTermSign {
+                source,
+                signing_key,
+                output,
+            } => {
+                write!(
+                    f,
+                    "LONG_TERM_SIGN({} WITH {} AS {})",
+                    source, signing_key, output
+                )
+            }
+            Instruction::Policy { name, formula } => {
+                write!(f, "POLICY({} FORMULA {})", name, formula)
+            }
+            Instruction::Regulation { standard, clause } => {
+                write!(f, "REGULATION({} CLAUSE {})", standard, clause)
+            }
+            Instruction::DataSovereignty { from, to } => {
+                write!(f, "DATA_SOVEREIGNTY({} -> {})", from, to)
+            }
+            Instruction::AccessControl { user, resource, action } => {
+                write!(f, "ACCESS_CONTROL({} {} {})", user, resource, action)
+            }
+            Instruction::AuditLedger { message } => {
+                write!(f, "AUDIT_LEDGER({})", message)
+            }
+            Instruction::DecisionQuorum { votes, threshold } => {
+                write!(f, "DECISION_QUORUM({} votes, {} threshold)", votes, threshold)
             }
         }
     }
@@ -280,6 +691,11 @@ impl TypeValidator {
     }
 }
 
+/// Check if a string is a literal value
+fn is_literal(s: &str) -> bool {
+    s.starts_with('"') && s.ends_with('"')
+}
+
 pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
     let mut instructions = Vec::new();
 
@@ -307,6 +723,55 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
         } = stmt
         {
             signatures.insert(name.clone(), parameters.len());
+        }
+    }
+
+    // Lower governance statements first so that policies/regulations appear before
+    // any procedure instructions in the IR stream.
+    if let Some(gov) = &program.governance {
+        for gstmt in &gov.statements {
+            match gstmt {
+                crate::ast::GovernanceStatement::Policy { name, formula } => {
+                    instructions.push(Instruction::Policy {
+                        name: name.clone(),
+                        formula: formula.clone(),
+                    });
+                }
+                crate::ast::GovernanceStatement::Regulation { standard, clause } => {
+                    instructions.push(Instruction::Regulation {
+                        standard: standard.clone(),
+                        clause: clause.clone(),
+                    });
+                }
+                crate::ast::GovernanceStatement::DataSovereignty { from, to } => {
+                    instructions.push(Instruction::DataSovereignty {
+                        from: from.clone(),
+                        to: to.clone(),
+                    });
+                }
+                crate::ast::GovernanceStatement::AccessControl {
+                    user,
+                    resource,
+                    action,
+                } => {
+                    instructions.push(Instruction::AccessControl {
+                        user: user.clone(),
+                        resource: resource.clone(),
+                        action: action.clone(),
+                    });
+                }
+                crate::ast::GovernanceStatement::AuditLedger { entry } => {
+                    instructions.push(Instruction::AuditLedger {
+                        message: entry.clone(),
+                    });
+                }
+                crate::ast::GovernanceStatement::DecisionQuorum { votes, threshold } => {
+                    instructions.push(Instruction::DecisionQuorum {
+                        votes: votes.clone(),
+                        threshold: threshold.clone(),
+                    });
+                }
+            }
         }
     }
 
@@ -539,7 +1004,11 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                     value: value.clone(),
                 });
             }
-            ProcedureStatement::Add { target, operand1, operand2 } => {
+            ProcedureStatement::Add {
+                target,
+                operand1,
+                operand2,
+            } => {
                 if !declared_vars.contains(target) {
                     return Err(format!(
                         "Variable '{}' not declared in DATA DIVISION",
@@ -564,7 +1033,11 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                     operand2: operand2.clone(),
                 });
             }
-            ProcedureStatement::Subtract { target, operand1, operand2 } => {
+            ProcedureStatement::Subtract {
+                target,
+                operand1,
+                operand2,
+            } => {
                 if !declared_vars.contains(target) {
                     return Err(format!(
                         "Variable '{}' not declared in DATA DIVISION",
@@ -589,7 +1062,11 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                     operand2: operand2.clone(),
                 });
             }
-            ProcedureStatement::Multiply { target, operand1, operand2 } => {
+            ProcedureStatement::Multiply {
+                target,
+                operand1,
+                operand2,
+            } => {
                 if !declared_vars.contains(target) {
                     return Err(format!(
                         "Variable '{}' not declared in DATA DIVISION",
@@ -614,7 +1091,11 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                     operand2: operand2.clone(),
                 });
             }
-            ProcedureStatement::Divide { target, operand1, operand2 } => {
+            ProcedureStatement::Divide {
+                target,
+                operand1,
+                operand2,
+            } => {
                 if !declared_vars.contains(target) {
                     return Err(format!(
                         "Variable '{}' not declared in DATA DIVISION",
@@ -637,6 +1118,196 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                     target: target.clone(),
                     operand1: operand1.clone(),
                     operand2: operand2.clone(),
+                });
+            }
+            ProcedureStatement::Concatenate { target, operands } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                for op in operands {
+                    if !declared_vars.contains(op) {
+                        return Err(format!("Variable '{}' not declared in DATA DIVISION", op));
+                    }
+                }
+                instructions.push(Instruction::Concatenate {
+                    target: target.clone(),
+                    operands: operands.clone(),
+                });
+            }
+            ProcedureStatement::Substring {
+                target,
+                source,
+                start,
+                length,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(source) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        source
+                    ));
+                }
+                instructions.push(Instruction::Substring {
+                    target: target.clone(),
+                    source: source.clone(),
+                    start: start.clone(),
+                    length: length.clone(),
+                });
+            }
+            ProcedureStatement::Length { target, source } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(source) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        source
+                    ));
+                }
+                instructions.push(Instruction::Length {
+                    target: target.clone(),
+                    source: source.clone(),
+                });
+            }
+            ProcedureStatement::Uppercase { target, source } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(source) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        source
+                    ));
+                }
+                instructions.push(Instruction::Uppercase {
+                    target: target.clone(),
+                    source: source.clone(),
+                });
+            }
+            ProcedureStatement::Lowercase { target, source } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(source) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        source
+                    ));
+                }
+                instructions.push(Instruction::Lowercase {
+                    target: target.clone(),
+                    source: source.clone(),
+                });
+            }
+            ProcedureStatement::Trim { target, source } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(source) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        source
+                    ));
+                }
+                instructions.push(Instruction::Trim {
+                    target: target.clone(),
+                    source: source.clone(),
+                });
+            }
+            ProcedureStatement::Max {
+                target,
+                operand1,
+                operand2,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(operand1) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        operand1
+                    ));
+                }
+                if !declared_vars.contains(operand2) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        operand2
+                    ));
+                }
+                instructions.push(Instruction::Max {
+                    target: target.clone(),
+                    operand1: operand1.clone(),
+                    operand2: operand2.clone(),
+                });
+            }
+            ProcedureStatement::Min {
+                target,
+                operand1,
+                operand2,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(operand1) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        operand1
+                    ));
+                }
+                if !declared_vars.contains(operand2) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        operand2
+                    ));
+                }
+                instructions.push(Instruction::Min {
+                    target: target.clone(),
+                    operand1: operand1.clone(),
+                    operand2: operand2.clone(),
+                });
+            }
+            ProcedureStatement::Abs { target, operand } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(operand) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        operand
+                    ));
+                }
+                instructions.push(Instruction::Abs {
+                    target: target.clone(),
+                    operand: operand.clone(),
                 });
             }
             ProcedureStatement::If {
@@ -735,6 +1406,445 @@ pub fn lower(program: Program) -> Result<Vec<Instruction>, String> {
                 instructions.push(Instruction::FunctionCall {
                     name: name.clone(),
                     arguments: arguments.clone(),
+                });
+            }
+            ProcedureStatement::Open {
+                file_handle,
+                file_path,
+            } => {
+                if !declared_vars.contains(file_handle) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        file_handle
+                    ));
+                }
+                // Type check: file_handle must be FILE-HANDLE
+                if let Some(dtype) = var_types.get(file_handle) {
+                    if !matches!(dtype, crate::ast::DataType::FileHandle) {
+                        return Err(format!(
+                            "OPEN operation requires FILE-HANDLE type, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::Open {
+                    file_handle: file_handle.clone(),
+                    file_path: file_path.clone(),
+                });
+            }
+            ProcedureStatement::ReadFile {
+                file_handle,
+                output_stream,
+            } => {
+                if !declared_vars.contains(file_handle) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        file_handle
+                    ));
+                }
+                if !declared_vars.contains(output_stream) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output_stream
+                    ));
+                }
+                // Type check: file_handle must be FILE-HANDLE, output_stream must be RECORD-STREAM
+                if let Some(dtype) = var_types.get(file_handle) {
+                    if !matches!(dtype, crate::ast::DataType::FileHandle) {
+                        return Err(format!(
+                            "READ-FILE operation requires FILE-HANDLE type for file_handle, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                if let Some(dtype) = var_types.get(output_stream) {
+                    if !matches!(dtype, crate::ast::DataType::RecordStream) {
+                        return Err(format!(
+                            "READ-FILE operation requires RECORD-STREAM type for output_stream, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::ReadFile {
+                    file_handle: file_handle.clone(),
+                    output_stream: output_stream.clone(),
+                });
+            }
+            ProcedureStatement::WriteFile {
+                file_handle,
+                input_stream,
+            } => {
+                if !declared_vars.contains(file_handle) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        file_handle
+                    ));
+                }
+                if !declared_vars.contains(input_stream) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        input_stream
+                    ));
+                }
+                // Type check: file_handle must be FILE-HANDLE, input_stream must be RECORD-STREAM
+                if let Some(dtype) = var_types.get(file_handle) {
+                    if !matches!(dtype, crate::ast::DataType::FileHandle) {
+                        return Err(format!(
+                            "WRITE-FILE operation requires FILE-HANDLE type for file_handle, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                if let Some(dtype) = var_types.get(input_stream) {
+                    if !matches!(dtype, crate::ast::DataType::RecordStream) {
+                        return Err(format!(
+                            "WRITE-FILE operation requires RECORD-STREAM type for input_stream, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::WriteFile {
+                    file_handle: file_handle.clone(),
+                    input_stream: input_stream.clone(),
+                });
+            }
+            ProcedureStatement::Close { file_handle } => {
+                if !declared_vars.contains(file_handle) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        file_handle
+                    ));
+                }
+                // Type check: file_handle must be FILE-HANDLE
+                if let Some(dtype) = var_types.get(file_handle) {
+                    if !matches!(dtype, crate::ast::DataType::FileHandle) {
+                        return Err(format!(
+                            "CLOSE operation requires FILE-HANDLE type, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::Close {
+                    file_handle: file_handle.clone(),
+                });
+            }
+            ProcedureStatement::Checkpoint { record_stream } => {
+                if !declared_vars.contains(record_stream) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        record_stream
+                    ));
+                }
+                // Type check: record_stream must be RECORD-STREAM
+                if let Some(dtype) = var_types.get(record_stream) {
+                    if !matches!(dtype, crate::ast::DataType::RecordStream) {
+                        return Err(format!(
+                            "CHECKPOINT operation requires RECORD-STREAM type, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::Checkpoint {
+                    record_stream: record_stream.clone(),
+                });
+            }
+            ProcedureStatement::Replay { target } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                // Type check: target must be RECORD-STREAM
+                if let Some(dtype) = var_types.get(target) {
+                    if !matches!(dtype, crate::ast::DataType::RecordStream) {
+                        return Err(format!(
+                            "REPLAY operation requires RECORD-STREAM type, got {}",
+                            dtype
+                        ));
+                    }
+                }
+                instructions.push(Instruction::Replay {
+                    target: target.clone(),
+                });
+            }
+            ProcedureStatement::SendBuffer {
+                buffer,
+                target_node,
+            } => {
+                if !declared_vars.contains(buffer) {
+                    return Err(format!("Buffer '{}' not declared in DATA DIVISION", buffer));
+                }
+                // Validate node reference if network division exists
+                if let Some(ref network) = program.network {
+                    let node_exists = network.nodes.iter().any(|n| &n.name == target_node);
+                    if !node_exists {
+                        return Err(format!("L6.006 NodeNotFound: {}", target_node));
+                    }
+                }
+                instructions.push(Instruction::SendBuffer {
+                    buffer: buffer.clone(),
+                    target_node: target_node.clone(),
+                });
+            }
+            ProcedureStatement::ReceiveBuffer {
+                buffer,
+                source_node,
+            } => {
+                if !declared_vars.contains(buffer) {
+                    return Err(format!("Buffer '{}' not declared in DATA DIVISION", buffer));
+                }
+                // Validate node reference if network division exists
+                if let Some(ref network) = program.network {
+                    let node_exists = network.nodes.iter().any(|n| &n.name == source_node);
+                    if !node_exists {
+                        return Err(format!("L6.006 NodeNotFound: {}", source_node));
+                    }
+                }
+                instructions.push(Instruction::ReceiveBuffer {
+                    buffer: buffer.clone(),
+                    source_node: source_node.clone(),
+                });
+            }
+            ProcedureStatement::PipeStream {
+                buffer,
+                target_node,
+                output,
+            } => {
+                if !declared_vars.contains(buffer) {
+                    return Err(format!("Buffer '{}' not declared in DATA DIVISION", buffer));
+                }
+                if !declared_vars.contains(output) {
+                    return Err(format!("Output '{}' not declared in DATA DIVISION", output));
+                }
+                // Validate node reference if network division exists
+                if let Some(ref network) = program.network {
+                    let node_exists = network.nodes.iter().any(|n| &n.name == target_node);
+                    if !node_exists {
+                        return Err(format!("L6.006 NodeNotFound: {}", target_node));
+                    }
+                }
+                instructions.push(Instruction::PipeStream {
+                    buffer: buffer.clone(),
+                    target_node: target_node.clone(),
+                    output: output.clone(),
+                });
+            }
+            ProcedureStatement::CallRemote {
+                node,
+                function_name,
+                args,
+                output,
+            } => {
+                // Validate node reference if network division exists
+                if let Some(ref network) = program.network {
+                    let node_exists = network.nodes.iter().any(|n| &n.name == node);
+                    if !node_exists {
+                        return Err(format!("L6.006 NodeNotFound: {}", node));
+                    }
+                }
+                // Validate args are declared variables
+                for arg in args {
+                    if !declared_vars.contains(arg) && !is_literal(arg) {
+                        return Err(format!("Argument '{}' not declared in DATA DIVISION", arg));
+                    }
+                }
+                instructions.push(Instruction::CallRemote {
+                    node: node.clone(),
+                    function_name: function_name.clone(),
+                    args: args.clone(),
+                    output: output.clone(),
+                });
+            }
+            ProcedureStatement::PreCondition { predicate } => {
+                instructions.push(Instruction::PreConditionCheck {
+                    predicate: predicate.clone(),
+                    location: "unknown".to_string(),
+                });
+            }
+            ProcedureStatement::PostCondition { predicate } => {
+                instructions.push(Instruction::PostConditionCheck {
+                    predicate: predicate.clone(),
+                    location: "unknown".to_string(),
+                });
+            }
+            ProcedureStatement::Invariant { predicate } => {
+                instructions.push(Instruction::InvariantCheck {
+                    predicate: predicate.clone(),
+                    location: "unknown".to_string(),
+                });
+            }
+            ProcedureStatement::Prove { target, predicate } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!("Target '{}' not declared in DATA DIVISION", target));
+                }
+                instructions.push(Instruction::ProveStatement {
+                    target: target.clone(),
+                    predicate: predicate.clone(),
+                });
+            }
+            ProcedureStatement::AssertStatement { target, predicate } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!("Target '{}' not declared in DATA DIVISION", target));
+                }
+                instructions.push(Instruction::AssertStatement {
+                    target: target.clone(),
+                    predicate: predicate.clone(),
+                });
+            }
+            ProcedureStatement::AuditLog { message } => {
+                instructions.push(Instruction::AuditLogEntry {
+                    message: message.clone(),
+                });
+            }
+            ProcedureStatement::QuantumEncrypt { target, key_name } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                instructions.push(Instruction::QuantumEncrypt {
+                    source: target.clone(),
+                    key_name: key_name.clone(),
+                });
+            }
+            ProcedureStatement::QuantumDecrypt { target, key_name } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                instructions.push(Instruction::QuantumDecrypt {
+                    target: target.clone(),
+                    key_name: key_name.clone(),
+                });
+            }
+            ProcedureStatement::QuantumSign {
+                target,
+                signing_key,
+                output,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(output) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output
+                    ));
+                }
+                instructions.push(Instruction::QuantumSign {
+                    source: target.clone(),
+                    signing_key: signing_key.clone(),
+                    output: output.clone(),
+                });
+            }
+            ProcedureStatement::QuantumVerifySig {
+                target,
+                verification_key,
+                signature_ref,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                instructions.push(Instruction::QuantumVerifySig {
+                    source: target.clone(),
+                    verification_key: verification_key.clone(),
+                    signature_ref: signature_ref.clone(),
+                });
+            }
+            ProcedureStatement::QuantumSignEncrypt {
+                target,
+                recipient_key,
+                signing_key,
+                output,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(output) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output
+                    ));
+                }
+                instructions.push(Instruction::QuantumSignEncrypt {
+                    source: target.clone(),
+                    recipient_key: recipient_key.clone(),
+                    signing_key: signing_key.clone(),
+                    output: output.clone(),
+                });
+            }
+            ProcedureStatement::QuantumVerifyDecrypt {
+                target,
+                recipient_key,
+                output,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(output) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output
+                    ));
+                }
+                instructions.push(Instruction::QuantumVerifyDecrypt {
+                    source: target.clone(),
+                    recipient_key: recipient_key.clone(),
+                    output: output.clone(),
+                });
+            }
+            ProcedureStatement::GenerateKeyPair {
+                algorithm,
+                output_name,
+            } => {
+                if !declared_vars.contains(output_name) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output_name
+                    ));
+                }
+                instructions.push(Instruction::GenerateKeyPair {
+                    algorithm: algorithm.clone(),
+                    output_name: output_name.clone(),
+                });
+            }
+            ProcedureStatement::LongTermSign {
+                target,
+                signing_key,
+                output,
+            } => {
+                if !declared_vars.contains(target) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        target
+                    ));
+                }
+                if !declared_vars.contains(output) {
+                    return Err(format!(
+                        "Variable '{}' not declared in DATA DIVISION",
+                        output
+                    ));
+                }
+                instructions.push(Instruction::LongTermSign {
+                    source: target.clone(),
+                    signing_key: signing_key.clone(),
+                    output: output.clone(),
                 });
             }
         }
@@ -869,7 +1979,11 @@ fn lower_single_statement(
                 value: value.clone(),
             })
         }
-        ProcedureStatement::Add { target, operand1, operand2 } => {
+        ProcedureStatement::Add {
+            target,
+            operand1,
+            operand2,
+        } => {
             if !declared_vars.contains(target) {
                 return Err(format!("Variable '{}' not declared", target));
             }
@@ -885,7 +1999,11 @@ fn lower_single_statement(
                 operand2: operand2.clone(),
             })
         }
-        ProcedureStatement::Subtract { target, operand1, operand2 } => {
+        ProcedureStatement::Subtract {
+            target,
+            operand1,
+            operand2,
+        } => {
             if !declared_vars.contains(target) {
                 return Err(format!("Variable '{}' not declared", target));
             }
@@ -901,7 +2019,11 @@ fn lower_single_statement(
                 operand2: operand2.clone(),
             })
         }
-        ProcedureStatement::Multiply { target, operand1, operand2 } => {
+        ProcedureStatement::Multiply {
+            target,
+            operand1,
+            operand2,
+        } => {
             if !declared_vars.contains(target) {
                 return Err(format!("Variable '{}' not declared", target));
             }
@@ -917,7 +2039,11 @@ fn lower_single_statement(
                 operand2: operand2.clone(),
             })
         }
-        ProcedureStatement::Divide { target, operand1, operand2 } => {
+        ProcedureStatement::Divide {
+            target,
+            operand1,
+            operand2,
+        } => {
             if !declared_vars.contains(target) {
                 return Err(format!("Variable '{}' not declared", target));
             }
@@ -931,6 +2057,186 @@ fn lower_single_statement(
                 target: target.clone(),
                 operand1: operand1.clone(),
                 operand2: operand2.clone(),
+            })
+        }
+        ProcedureStatement::Open {
+            file_handle,
+            file_path,
+        } => {
+            if !declared_vars.contains(file_handle) {
+                return Err(format!("Variable '{}' not declared", file_handle));
+            }
+            Ok(Instruction::Open {
+                file_handle: file_handle.clone(),
+                file_path: file_path.clone(),
+            })
+        }
+        ProcedureStatement::ReadFile {
+            file_handle,
+            output_stream,
+        } => {
+            if !declared_vars.contains(file_handle) {
+                return Err(format!("Variable '{}' not declared", file_handle));
+            }
+            if !declared_vars.contains(output_stream) {
+                return Err(format!("Variable '{}' not declared", output_stream));
+            }
+            Ok(Instruction::ReadFile {
+                file_handle: file_handle.clone(),
+                output_stream: output_stream.clone(),
+            })
+        }
+        ProcedureStatement::WriteFile {
+            file_handle,
+            input_stream,
+        } => {
+            if !declared_vars.contains(file_handle) {
+                return Err(format!("Variable '{}' not declared", file_handle));
+            }
+            if !declared_vars.contains(input_stream) {
+                return Err(format!("Variable '{}' not declared", input_stream));
+            }
+            Ok(Instruction::WriteFile {
+                file_handle: file_handle.clone(),
+                input_stream: input_stream.clone(),
+            })
+        }
+        ProcedureStatement::Close { file_handle } => {
+            if !declared_vars.contains(file_handle) {
+                return Err(format!("Variable '{}' not declared", file_handle));
+            }
+            Ok(Instruction::Close {
+                file_handle: file_handle.clone(),
+            })
+        }
+        ProcedureStatement::Checkpoint { record_stream } => {
+            if !declared_vars.contains(record_stream) {
+                return Err(format!("Variable '{}' not declared", record_stream));
+            }
+            Ok(Instruction::Checkpoint {
+                record_stream: record_stream.clone(),
+            })
+        }
+        ProcedureStatement::Replay { target } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            Ok(Instruction::Replay {
+                target: target.clone(),
+            })
+        }
+        ProcedureStatement::QuantumEncrypt { target, key_name } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            Ok(Instruction::QuantumEncrypt {
+                source: target.clone(),
+                key_name: key_name.clone(),
+            })
+        }
+        ProcedureStatement::QuantumDecrypt { target, key_name } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            Ok(Instruction::QuantumDecrypt {
+                target: target.clone(),
+                key_name: key_name.clone(),
+            })
+        }
+        ProcedureStatement::QuantumSign {
+            target,
+            signing_key,
+            output,
+        } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            if !declared_vars.contains(output) {
+                return Err(format!("Variable '{}' not declared", output));
+            }
+            Ok(Instruction::QuantumSign {
+                source: target.clone(),
+                signing_key: signing_key.clone(),
+                output: output.clone(),
+            })
+        }
+        ProcedureStatement::QuantumVerifySig {
+            target,
+            verification_key,
+            signature_ref,
+        } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            Ok(Instruction::QuantumVerifySig {
+                source: target.clone(),
+                verification_key: verification_key.clone(),
+                signature_ref: signature_ref.clone(),
+            })
+        }
+        ProcedureStatement::QuantumSignEncrypt {
+            target,
+            recipient_key,
+            signing_key,
+            output,
+        } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            if !declared_vars.contains(output) {
+                return Err(format!("Variable '{}' not declared", output));
+            }
+            Ok(Instruction::QuantumSignEncrypt {
+                source: target.clone(),
+                recipient_key: recipient_key.clone(),
+                signing_key: signing_key.clone(),
+                output: output.clone(),
+            })
+        }
+        ProcedureStatement::QuantumVerifyDecrypt {
+            target,
+            recipient_key,
+            output,
+        } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            if !declared_vars.contains(output) {
+                return Err(format!("Variable '{}' not declared", output));
+            }
+            Ok(Instruction::QuantumVerifyDecrypt {
+                source: target.clone(),
+                recipient_key: recipient_key.clone(),
+                output: output.clone(),
+            })
+        }
+        ProcedureStatement::GenerateKeyPair {
+            algorithm,
+            output_name,
+        } => {
+            if !declared_vars.contains(output_name) {
+                return Err(format!("Variable '{}' not declared", output_name));
+            }
+            Ok(Instruction::GenerateKeyPair {
+                algorithm: algorithm.clone(),
+                output_name: output_name.clone(),
+            })
+        }
+        ProcedureStatement::LongTermSign {
+            target,
+            signing_key,
+            output,
+        } => {
+            if !declared_vars.contains(target) {
+                return Err(format!("Variable '{}' not declared", target));
+            }
+            if !declared_vars.contains(output) {
+                return Err(format!("Variable '{}' not declared", output));
+            }
+            Ok(Instruction::LongTermSign {
+                source: target.clone(),
+                signing_key: signing_key.clone(),
+                output: output.clone(),
             })
         }
         _ => Err("Unsupported nested statement".to_string()),
@@ -969,4 +2275,200 @@ mod tests {
         };
         assert_eq!(d1, d2);
     }
+
+    #[test]
+    fn test_file_operation_instructions() {
+        let open_instr = Instruction::Open {
+            file_handle: "fh".to_string(),
+            file_path: "/path/to/file".to_string(),
+        };
+        assert_eq!(format!("{}", open_instr), "OPEN(fh AS /path/to/file)");
+
+        let read_instr = Instruction::ReadFile {
+            file_handle: "fh".to_string(),
+            output_stream: "rs".to_string(),
+        };
+        assert_eq!(format!("{}", read_instr), "READ-FILE(fh INTO rs)");
+
+        let write_instr = Instruction::WriteFile {
+            file_handle: "fh".to_string(),
+            input_stream: "rs".to_string(),
+        };
+        assert_eq!(format!("{}", write_instr), "WRITE-FILE(fh FROM rs)");
+
+        let close_instr = Instruction::Close {
+            file_handle: "fh".to_string(),
+        };
+        assert_eq!(format!("{}", close_instr), "CLOSE(fh)");
+
+        let checkpoint_instr = Instruction::Checkpoint {
+            record_stream: "rs".to_string(),
+        };
+        assert_eq!(format!("{}", checkpoint_instr), "CHECKPOINT(rs)");
+
+        let replay_instr = Instruction::Replay {
+            target: "rs".to_string(),
+        };
+        assert_eq!(format!("{}", replay_instr), "REPLAY(rs)");
+    }
+
+    #[test]
+    fn test_quantum_encrypt_instruction() {
+        let instr = Instruction::QuantumEncrypt {
+            source: "plaintext".to_string(),
+            key_name: "encryption_key".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_ENCRYPT(plaintext WITH encryption_key)"
+        );
+    }
+
+    #[test]
+    fn test_quantum_decrypt_instruction() {
+        let instr = Instruction::QuantumDecrypt {
+            target: "ciphertext".to_string(),
+            key_name: "decryption_key".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_DECRYPT(ciphertext WITH decryption_key)"
+        );
+    }
+
+    #[test]
+    fn test_quantum_sign_instruction() {
+        let instr = Instruction::QuantumSign {
+            source: "message".to_string(),
+            signing_key: "private_key".to_string(),
+            output: "signature".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_SIGN(message WITH private_key AS signature)"
+        );
+    }
+
+    #[test]
+    fn test_quantum_verify_sig_instruction() {
+        let instr = Instruction::QuantumVerifySig {
+            source: "message".to_string(),
+            verification_key: "public_key".to_string(),
+            signature_ref: "sig_buffer".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_VERIFY_SIG(message WITH public_key SIGNATURE sig_buffer)"
+        );
+    }
+
+    #[test]
+    fn test_quantum_sign_encrypt_instruction() {
+        let instr = Instruction::QuantumSignEncrypt {
+            source: "plaintext".to_string(),
+            recipient_key: "recipient_pk".to_string(),
+            signing_key: "sender_sk".to_string(),
+            output: "encrypted_signed".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_SIGN_ENCRYPT(plaintext FOR recipient_pk SIGNED_BY sender_sk AS encrypted_signed)"
+        );
+    }
+
+    #[test]
+    fn test_quantum_verify_decrypt_instruction() {
+        let instr = Instruction::QuantumVerifyDecrypt {
+            source: "encrypted_signed".to_string(),
+            recipient_key: "recipient_sk".to_string(),
+            output: "plaintext".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "QUANTUM_VERIFY_DECRYPT(encrypted_signed WITH recipient_sk AS plaintext)"
+        );
+    }
+
+    #[test]
+    fn test_generate_keypair_instruction() {
+        let instr = Instruction::GenerateKeyPair {
+            algorithm: "ML-KEM-768".to_string(),
+            output_name: "generated_keypair".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "GENERATE_KEYPAIR(ALGORITHM ML-KEM-768 AS generated_keypair)"
+        );
+    }
+
+    #[test]
+    fn test_long_term_sign_instruction() {
+        let instr = Instruction::LongTermSign {
+            source: "document".to_string(),
+            signing_key: "long_term_key".to_string(),
+            output: "long_term_sig".to_string(),
+        };
+        assert_eq!(
+            format!("{}", instr),
+            "LONG_TERM_SIGN(document WITH long_term_key AS long_term_sig)"
+        );
+    }
+
+    #[test]
+    fn test_governance_instructions_display() {
+        let p = Instruction::Policy {
+            name: "allow".to_string(),
+            formula: "G(a)".to_string(),
+        };
+        assert_eq!(format!("{}", p), "POLICY(allow FORMULA G(a))");
+
+        let r = Instruction::Regulation {
+            standard: "GDPR".to_string(),
+            clause: "no export".to_string(),
+        };
+        assert_eq!(format!("{}", r), "REGULATION(GDPR CLAUSE no export)");
+
+        let d = Instruction::DataSovereignty {
+            from: "EU".to_string(),
+            to: "US".to_string(),
+        };
+        assert_eq!(format!("{}", d), "DATA_SOVEREIGNTY(EU -> US)");
+
+        let a = Instruction::AccessControl {
+            user: "alice".to_string(),
+            resource: "file1".to_string(),
+            action: "read".to_string(),
+        };
+        assert_eq!(format!("{}", a), "ACCESS_CONTROL(alice file1 read)");
+
+        let al = Instruction::AuditLedger {
+            message: "entry".to_string(),
+        };
+        assert_eq!(format!("{}", al), "AUDIT_LEDGER(entry)");
+
+        let q = Instruction::DecisionQuorum {
+            votes: "5".to_string(),
+            threshold: "3".to_string(),
+        };
+        assert_eq!(format!("{}", q), "DECISION_QUORUM(5 votes, 3 threshold)");
+    }
+
+    #[test]
+    fn test_lower_governance_division() {
+        use crate::ast::{Program, IdentificationDivision, EnvironmentDivision, DataDivision, ProcedureDivision, GovernanceDivision, GovernanceStatement};
+        let prog = Program {
+            identification: IdentificationDivision { program_id: "p".to_string(), author: None, version: None },
+            environment: EnvironmentDivision { config: std::collections::HashMap::new() },
+            network: None,
+            verification: None,
+            governance: Some(GovernanceDivision { statements: vec![
+                GovernanceStatement::AuditLedger { entry: "log1".to_string() },
+            ]}),
+            data: DataDivision { variables: vec![] },
+            procedure: ProcedureDivision { statements: vec![] },
+        };
+        let instrs = lower(prog).unwrap();
+        assert_eq!(instrs, vec![Instruction::AuditLedger { message: "log1".to_string() }]);
+    }
 }
+

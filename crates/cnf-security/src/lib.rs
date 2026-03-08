@@ -13,6 +13,8 @@
 //! - Provide deterministic encryption/decryption
 //! - Be isolated and sealed
 
+use aes_gcm::aead::{Aead, KeyInit};
+use aes_gcm::{Aes256Gcm, Key, Nonce};
 use sha2::{Digest, Sha256};
 
 /// Compute SHA-256 digest of buffer and return hex-encoded string.
@@ -25,30 +27,54 @@ pub fn sha256_hex(data: &[u8]) -> String {
     hex::encode(digest)
 }
 
-/// Encrypt buffer using deterministic XOR-based encryption.
+/// Encrypt buffer using AES-256-GCM with deterministic nonce.
 ///
-/// Deterministic: same input always produces same output. Returns vector of
-/// encrypted bytes. This implementation uses a fixed-key transformation to
-/// keep the runtime free of library details; the security crate is the only
-/// place that knows about encryption.
-///
-/// Note: This is NOT cryptographically secure but satisfies determinism.
-/// In production, use the `aes` crate with proper key management.
+/// Deterministic: same input always produces same output.
+/// Nonce is derived deterministically from SHA-256 hash of input data.
+/// Returns: nonce (12 bytes) + ciphertext (includes authentication tag).
 pub fn encrypt_aes256(data: &[u8]) -> Vec<u8> {
-    // Simple deterministic transformation: XOR with fixed bytes
-    const XOR_KEY: &[u8] = b"CENTRA-NF-ENCRYPTION-KEY-256BIT";
-    let mut result = data.to_vec();
-    for (i, byte) in result.iter_mut().enumerate() {
-        *byte ^= XOR_KEY[i % XOR_KEY.len()];
-    }
+    // Fixed key for deterministic encryption (in production, use proper key management)
+    const KEY_BYTES: &[u8; 32] = b"CENTRA-NF-AES256-GCM-KEY-32BYTES";
+    let key = Key::<Aes256Gcm>::from_slice(KEY_BYTES);
+    let cipher = Aes256Gcm::new(key);
+
+    // Deterministic nonce: first 12 bytes of SHA-256 hash of input data
+    let hash = sha256_hex(data).into_bytes();
+    let nonce_bytes: [u8; 12] = hash[..12].try_into().unwrap();
+    let nonce = Nonce::from(nonce_bytes);
+
+    // Encrypt
+    let ciphertext = cipher.encrypt(&nonce, data).expect("encryption failure");
+
+    // Prepend nonce to ciphertext for decryption
+    let mut result = nonce_bytes.to_vec();
+    result.extend_from_slice(&ciphertext);
     result
 }
 
 /// Decrypt buffer that was produced by `encrypt_aes256`.
 ///
-/// For deterministic encryption (XOR-based), decryption is identical to encryption.
+/// Extracts nonce from the beginning of the encrypted data.
 pub fn decrypt_aes256(data: &[u8]) -> Vec<u8> {
-    encrypt_aes256(data) // XOR is its own inverse
+    if data.len() < 12 {
+        panic!("encrypted data too short");
+    }
+
+    // Fixed key (same as encryption)
+    const KEY_BYTES: &[u8; 32] = b"CENTRA-NF-AES256-GCM-KEY-32BYTES";
+    let key = Key::<Aes256Gcm>::from_slice(KEY_BYTES);
+    let cipher = Aes256Gcm::new(key);
+
+    // Extract nonce from beginning
+    let nonce_bytes: [u8; 12] = data[..12].try_into().unwrap();
+    let nonce = Nonce::from(nonce_bytes);
+
+    // Extract ciphertext (rest of the data)
+    let ciphertext = &data[12..];
+
+    cipher
+        .decrypt(&nonce, ciphertext)
+        .expect("decryption failure")
 }
 
 #[cfg(test)]
@@ -100,5 +126,13 @@ mod tests {
         let enc1 = encrypt_aes256(data);
         let enc2 = encrypt_aes256(data);
         assert_eq!(enc1, enc2);
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_aes_gcm_roundtrip() {
+        let plaintext = b"This is a test message for AES-GCM encryption";
+        let encrypted = encrypt_aes256(plaintext);
+        let decrypted = decrypt_aes256(&encrypted);
+        assert_eq!(plaintext.to_vec(), decrypted);
     }
 }

@@ -5,7 +5,7 @@
 
 #![cfg(test)]
 
-use centra_nf_lsp::{MessageHandler, Message, Notification, Request, Response, JsonRpcIO};
+use centra_nf_lsp::{JsonRpcIO, Message, MessageHandler, Notification, Request, Response};
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 

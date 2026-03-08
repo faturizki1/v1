@@ -33,6 +33,17 @@ pub enum Token {
     EnvironmentDiv,
     DataDiv,
     ProcedureDiv,
+    VerificationDiv,
+
+    // Verification keywords
+    PreCondition,
+    PostCondition,
+    Invariant,
+    Prove,
+    AssertKw,
+    Satisfies,
+    AuditLog,
+    ComplianceReport,
 
     // Keywords
     Division,
@@ -63,12 +74,31 @@ pub enum Token {
     Print,
     Read,
 
+    // File operations (storage)
+    Open,
+    ReadFile,
+    WriteFile,
+    Close,
+    Checkpoint,
+    Replay,
+
     // Arithmetic operations
     Set,
     Add,
     Subtract,
     Multiply,
     Divide,
+    Max,
+    Min,
+    Abs,
+
+    // String operations
+    Concatenate,
+    Substring,
+    Length,
+    Uppercase,
+    Lowercase,
+    Trim,
 
     // Control flow
     If,
@@ -89,6 +119,23 @@ pub enum Token {
     Parameters,
     Returns,
 
+    // Network operations
+    Network,
+    Node,
+    At,
+    Self_,
+    Topology,
+    Pipeline,
+    Mesh,
+    Star,
+    Timeout,
+    Send,
+    Receive,
+    To,
+    From,
+    Pipe,
+    CallRemote,
+
     // Data types
     VideoMp4,
     ImageJpg,
@@ -99,6 +146,45 @@ pub enum Token {
     JsonObject,
     XmlDocument,
     ParquetTable,
+    TextString,
+    NumberInteger,
+    NumberDecimal,
+    FileHandle,
+    RecordStream,
+
+    // Quantum operations (v0.8.0)
+    QuantumEncrypt,
+    QuantumDecrypt,
+    QuantumSign,
+    QuantumVerifySig,
+    QuantumSignEncrypt,
+    QuantumVerifyDecrypt,
+    GenerateKeypair,
+    LongTermSign,
+
+    // Governance-related (v0.9.0)
+    GovernanceDiv,
+    Policy,
+    Formula,
+    Regulation,
+    Clause,
+    DataSovereignty,
+    AccessControl,
+    AuditLedger,
+    DecisionQuorum,
+    Votes,
+    Threshold,
+    Standard,
+    User,
+    Resource,
+    Action,
+    Entry,
+
+    // Signature-related
+    Signature,
+    Algorithm,
+    SignedBy,
+    With,
 
     // Literals and punctuation
     Identifier(String),
@@ -114,6 +200,7 @@ impl fmt::Display for Token {
             Token::EnvironmentDiv => write!(f, "ENVIRONMENT DIVISION"),
             Token::DataDiv => write!(f, "DATA DIVISION"),
             Token::ProcedureDiv => write!(f, "PROCEDURE DIVISION"),
+            Token::GovernanceDiv => write!(f, "GOVERNANCE DIVISION"),
             Token::Identifier(s) => write!(f, "IDENTIFIER({})", s),
             Token::String(s) => write!(f, "STRING({})", s),
             Token::Period => write!(f, "."),
@@ -125,11 +212,26 @@ impl fmt::Display for Token {
             Token::Display => write!(f, "DISPLAY"),
             Token::Print => write!(f, "PRINT"),
             Token::Read => write!(f, "READ"),
+            Token::Open => write!(f, "OPEN"),
+            Token::ReadFile => write!(f, "READ-FILE"),
+            Token::WriteFile => write!(f, "WRITE-FILE"),
+            Token::Close => write!(f, "CLOSE"),
+            Token::Checkpoint => write!(f, "CHECKPOINT"),
+            Token::Replay => write!(f, "REPLAY"),
             Token::Set => write!(f, "SET"),
             Token::Add => write!(f, "ADD"),
             Token::Subtract => write!(f, "SUBTRACT"),
             Token::Multiply => write!(f, "MULTIPLY"),
             Token::Divide => write!(f, "DIVIDE"),
+            Token::Max => write!(f, "MAX"),
+            Token::Min => write!(f, "MIN"),
+            Token::Abs => write!(f, "ABS"),
+            Token::Concatenate => write!(f, "CONCATENATE"),
+            Token::Substring => write!(f, "SUBSTRING"),
+            Token::Length => write!(f, "LENGTH"),
+            Token::Uppercase => write!(f, "UPPERCASE"),
+            Token::Lowercase => write!(f, "LOWERCASE"),
+            Token::Trim => write!(f, "TRIM"),
             _ => write!(f, "{:?}", self),
         }
     }
@@ -231,6 +333,15 @@ fn keyword_to_token(s: &str) -> Token {
         "ENVIRONMENT" => Token::EnvironmentDiv,
         "DATA" => Token::DataDiv,
         "PROCEDURE" => Token::ProcedureDiv,
+        "VERIFICATION" => Token::VerificationDiv,
+        "PRE-CONDITION" => Token::PreCondition,
+        "POST-CONDITION" => Token::PostCondition,
+        "INVARIANT" => Token::Invariant,
+        "PROVE" => Token::Prove,
+        "ASSERT" => Token::AssertKw,
+        "SATISFIES" => Token::Satisfies,
+        "AUDIT-LOG" => Token::AuditLog,
+        "COMPLIANCE-REPORT" => Token::ComplianceReport,
         "DIVISION" => Token::Division,
         "PROGRAM-ID" => Token::ProgramId,
         "AUTHOR" => Token::Author,
@@ -261,6 +372,15 @@ fn keyword_to_token(s: &str) -> Token {
         "SUBTRACT" => Token::Subtract,
         "MULTIPLY" => Token::Multiply,
         "DIVIDE" => Token::Divide,
+        "MAX" => Token::Max,
+        "MIN" => Token::Min,
+        "ABS" => Token::Abs,
+        "CONCATENATE" => Token::Concatenate,
+        "SUBSTRING" => Token::Substring,
+        "LENGTH" => Token::Length,
+        "UPPERCASE" => Token::Uppercase,
+        "LOWERCASE" => Token::Lowercase,
+        "TRIM" => Token::Trim,
         "VIDEO-MP4" => Token::VideoMp4,
         "IMAGE-JPG" => Token::ImageJpg,
         "FINANCIAL-DECIMAL" => Token::FinancialDecimal,
@@ -270,6 +390,9 @@ fn keyword_to_token(s: &str) -> Token {
         "JSON-OBJECT" => Token::JsonObject,
         "XML-DOCUMENT" => Token::XmlDocument,
         "PARQUET-TABLE" => Token::ParquetTable,
+        "TEXT-STRING" => Token::TextString,
+        "NUMBER-INTEGER" => Token::NumberInteger,
+        "NUMBER-DECIMAL" => Token::NumberDecimal,
         "IF" => Token::If,
         "ELSE" => Token::Else,
         "THEN" => Token::Then,
@@ -285,6 +408,58 @@ fn keyword_to_token(s: &str) -> Token {
         "END-FUNCTION" => Token::EndFunction,
         "PARAMETERS" => Token::Parameters,
         "RETURNS" => Token::Returns,
+        "NETWORK" => Token::Network,
+        "NODE" => Token::Node,
+        "AT" => Token::At,
+        "SELF" => Token::Self_,
+        "TOPOLOGY" => Token::Topology,
+        "PIPELINE" => Token::Pipeline,
+        "MESH" => Token::Mesh,
+        "STAR" => Token::Star,
+        "TIMEOUT" => Token::Timeout,
+        "SEND" => Token::Send,
+        "RECEIVE" => Token::Receive,
+        "TO" => Token::To,
+        "FROM" => Token::From,
+        "PIPE" => Token::Pipe,
+        "CALL-REMOTE" => Token::CallRemote,
+        "OPEN" => Token::Open,
+        "READ-FILE" => Token::ReadFile,
+        "WRITE-FILE" => Token::WriteFile,
+        "CLOSE" => Token::Close,
+        "CHECKPOINT" => Token::Checkpoint,
+        "REPLAY" => Token::Replay,
+        "FILE-HANDLE" => Token::FileHandle,
+        "RECORD-STREAM" => Token::RecordStream,
+        "QUANTUM-ENCRYPT" => Token::QuantumEncrypt,
+        "QUANTUM-DECRYPT" => Token::QuantumDecrypt,
+        "QUANTUM-SIGN" => Token::QuantumSign,
+        "QUANTUM-VERIFY-SIG" => Token::QuantumVerifySig,
+        "QUANTUM-SIGN-ENCRYPT" => Token::QuantumSignEncrypt,
+        "QUANTUM-VERIFY-DECRYPT" => Token::QuantumVerifyDecrypt,
+        "GENERATE-KEYPAIR" => Token::GenerateKeypair,
+        "LONG-TERM-SIGN" => Token::LongTermSign,
+        // governance keywords
+        "GOVERNANCE" => Token::GovernanceDiv,
+        "POLICY" => Token::Policy,
+        "FORMULA" => Token::Formula,
+        "REGULATION" => Token::Regulation,
+        "CLAUSE" => Token::Clause,
+        "DATA-SOVEREIGNTY" => Token::DataSovereignty,
+        "ACCESS-CONTROL" => Token::AccessControl,
+        "AUDIT-LEDGER" => Token::AuditLedger,
+        "DECISION-QUORUM" => Token::DecisionQuorum,
+        "VOTES" => Token::Votes,
+        "THRESHOLD" => Token::Threshold,
+        "STANDARD" => Token::Standard,
+        "USER" => Token::User,
+        "RESOURCE" => Token::Resource,
+        "ACTION" => Token::Action,
+        "ENTRY" => Token::Entry,
+        "SIGNATURE" => Token::Signature,
+        "ALGORITHM" => Token::Algorithm,
+        "SIGNED-BY" => Token::SignedBy,
+        "WITH" => Token::With,
         _ => Token::Identifier(s.to_string()),
     }
 }
@@ -309,7 +484,28 @@ mod tests {
         let tokens = tokenize("IDENTIFICATION DIVISION.").unwrap();
         assert_eq!(tokens[0], Token::IdentificationDiv);
         assert_eq!(tokens[1], Token::Division);
-        assert_eq!(tokens[2], Token::Period);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_governance_keywords() {
+        let source = "GOVERNANCE DIVISION. POLICY FORMULA REGULATION CLAUSE DATA-SOVEREIGNTY ACCESS-CONTROL AUDIT-LEDGER DECISION-QUORUM VOTES THRESHOLD STANDARD USER RESOURCE ACTION ENTRY";
+        let tokens = tokenize(source).unwrap();
+        assert!(tokens.contains(&Token::GovernanceDiv));
+        assert!(tokens.contains(&Token::Policy));
+        assert!(tokens.contains(&Token::Formula));
+        assert!(tokens.contains(&Token::Regulation));
+        assert!(tokens.contains(&Token::Clause));
+        assert!(tokens.contains(&Token::DataSovereignty));
+        assert!(tokens.contains(&Token::AccessControl));
+        assert!(tokens.contains(&Token::AuditLedger));
+        assert!(tokens.contains(&Token::DecisionQuorum));
+        assert!(tokens.contains(&Token::Votes));
+        assert!(tokens.contains(&Token::Threshold));
+        assert!(tokens.contains(&Token::Standard));
+        assert!(tokens.contains(&Token::User));
+        assert!(tokens.contains(&Token::Resource));
+        assert!(tokens.contains(&Token::Action));
+        assert!(tokens.contains(&Token::Entry));
     }
 
     #[test]
@@ -339,5 +535,62 @@ mod tests {
         let tokens = tokenize("ENCRYPT BUFFER DECRYPT BUFFER").unwrap();
         assert_eq!(tokens[0], Token::Encrypt);
         assert_eq!(tokens[2], Token::Decrypt);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_encrypt() {
+        let tokens = tokenize("QUANTUM-ENCRYPT").unwrap();
+        assert_eq!(tokens[0], Token::QuantumEncrypt);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_decrypt() {
+        let tokens = tokenize("QUANTUM-DECRYPT").unwrap();
+        assert_eq!(tokens[0], Token::QuantumDecrypt);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_sign() {
+        let tokens = tokenize("QUANTUM-SIGN").unwrap();
+        assert_eq!(tokens[0], Token::QuantumSign);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_verify_sig() {
+        let tokens = tokenize("QUANTUM-VERIFY-SIG").unwrap();
+        assert_eq!(tokens[0], Token::QuantumVerifySig);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_sign_encrypt() {
+        let tokens = tokenize("QUANTUM-SIGN-ENCRYPT").unwrap();
+        assert_eq!(tokens[0], Token::QuantumSignEncrypt);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_verify_decrypt() {
+        let tokens = tokenize("QUANTUM-VERIFY-DECRYPT").unwrap();
+        assert_eq!(tokens[0], Token::QuantumVerifyDecrypt);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_generate_keypair() {
+        let tokens = tokenize("GENERATE-KEYPAIR").unwrap();
+        assert_eq!(tokens[0], Token::GenerateKeypair);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_long_term_sign() {
+        let tokens = tokenize("LONG-TERM-SIGN").unwrap();
+        assert_eq!(tokens[0], Token::LongTermSign);
+    }
+
+    #[test]
+    fn test_lexer_recognizes_quantum_supporting_tokens() {
+        let tokens = tokenize("SIGNATURE ALGORITHM SIGNED-BY WITH").unwrap();
+        assert_eq!(tokens[0], Token::Signature);
+        assert_eq!(tokens[1], Token::Algorithm);
+        assert_eq!(tokens[2], Token::SignedBy);
+        assert_eq!(tokens[3], Token::With);
     }
 }

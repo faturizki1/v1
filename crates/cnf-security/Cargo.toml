@@ -9,9 +9,6 @@ license.workspace = true
 sha2 = "0.10"
 hex = "0.4"
 
-# Added for ENCRYPT/DECRYPT operations in security layer
-# We use AES-256-CBC with fixed key/iv for deterministic behavior.
-aes = "0.8"
-block-modes = "0.9"
-block-padding = "0.3"
+# Real AES-256-GCM encryption
+aes-gcm = "0.10"
 

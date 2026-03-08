@@ -1,0 +1,21 @@
+IDENTIFICATION DIVISION.
+    PROGRAM-ID. StringOpsTest.
+
+ENVIRONMENT DIVISION.
+    OS "Linux".
+    ARCH "x86_64".
+
+DATA DIVISION.
+    INPUT TEXT-STRING AS str1.
+    INPUT TEXT-STRING AS str2.
+    INPUT TEXT-STRING AS str3.
+    OUTPUT TEXT-STRING AS result.
+    OUTPUT NUMBER-INTEGER AS length_val.
+
+PROCEDURE DIVISION.
+    SET str1 "Hello".
+    SET str2 "World".
+    SET str3 "Test".
+    CONCATENATE result str1 str2 str3.
+    LENGTH length_val result.
+    DISPLAY "Operations Complete".

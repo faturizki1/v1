@@ -58,6 +58,12 @@ jobs:
       - name: Gate 5 - Build Release
         run: cargo build --all --release
 
+      - name: Gate 13 - Quantum full pipeline test
+        run: cargo test -p cnf-quantum test_quantum_full_pipeline --verbose
+
+      - name: Gate 14 - Quantum decrypt determinism
+        run: cargo test -p cnf-quantum test_quantum_decrypt_determinism --verbose
+
   determinism-check:
     name: Determinism Verification
     runs-on: ubuntu-latest

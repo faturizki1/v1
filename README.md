@@ -5,7 +5,7 @@
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](#)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)](#prerequisites)
 [![License](https://img.shields.io/badge/license-read--only-blue)](#license)
-[![Version](https://img.shields.io/badge/version-0.3.0-informational)](#)
+[![Version](https://img.shields.io/badge/version-1.0.0-informational)](#)
 
 ---
 

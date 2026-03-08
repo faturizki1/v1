@@ -77,7 +77,11 @@ fn main() {
         Commands::Check { input } => {
             check_file(&input);
         }
-        Commands::Run { input, buffer, verbose } => {
+        Commands::Run {
+            input,
+            buffer,
+            verbose,
+        } => {
             run_file(&input, buffer.as_deref(), verbose);
         }
         Commands::Repl => {
@@ -236,13 +240,16 @@ fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>, verbose: bool) {
                     | Instruction::Divide { target, .. } => {
                         return Some(target.clone());
                     }
-                    Instruction::Aggregate { targets, .. }
-                    | Instruction::Merge { targets, .. } => {
+                    Instruction::Aggregate { targets, .. } | Instruction::Merge { targets, .. } => {
                         if let Some(first) = targets.first() {
                             return Some(first.clone());
                         }
                     }
-                    Instruction::IfStatement { then_instrs, else_instrs, .. } => {
+                    Instruction::IfStatement {
+                        then_instrs,
+                        else_instrs,
+                        ..
+                    } => {
                         if let Some(name) = infer_name(then_instrs) {
                             return Some(name);
                         }
@@ -252,8 +259,7 @@ fn run_file(input_path: &PathBuf, buffer_hex: Option<&str>, verbose: bool) {
                             }
                         }
                     }
-                    Instruction::ForLoop { instrs, .. }
-                    | Instruction::WhileLoop { instrs, .. } => {
+                    Instruction::ForLoop { instrs, .. } | Instruction::WhileLoop { instrs, .. } => {
                         if let Some(name) = infer_name(instrs) {
                             return Some(name);
                         }

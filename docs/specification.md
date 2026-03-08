@@ -1,6 +1,6 @@
 # CENTRA-NF Language Specification
 
-**Version 0.3.0 - LSP-Integrated Programming Language**
+**Version 1.0.0 - Stable Release with Governance**
 
 **Auto-generated from errors_registry.json**
 
@@ -20,7 +20,7 @@ Total error codes: **2000**
 
 ## 1. Introduction
 
-CENTRA-NF is a domain-specific programming language designed for secure data processing and compression operations. It follows a COBOL-inspired structure with four mandatory divisions and supports multimedia data types with cryptographic operations.
+CENTRA-NF is a domain-specific programming language designed for secure data processing and compression operations. It follows a COBOL-inspired structure with four mandatory divisions and optional governance features for compliance and access control.
 
 ## 2. Language Structure
 
@@ -30,6 +30,16 @@ Every CENTRA-NF program must contain exactly four divisions in this strict order
 IDENTIFICATION DIVISION.
 ENVIRONMENT DIVISION.
 DATA DIVISION.
+PROCEDURE DIVISION.
+```
+
+An optional `GOVERNANCE DIVISION` may be inserted between `DATA DIVISION` and `PROCEDURE DIVISION` for compliance and access control:
+
+```cobol
+IDENTIFICATION DIVISION.
+ENVIRONMENT DIVISION.
+DATA DIVISION.
+GOVERNANCE DIVISION.  // Optional
 PROCEDURE DIVISION.
 ```
 
@@ -80,7 +90,26 @@ DATA DIVISION.
 - `BINARY-BLOB`: Generic binary data
 - `FINANCIAL-DECIMAL`: High-precision decimal numbers
 
-### 2.4 PROCEDURE DIVISION
+### 2.4 GOVERNANCE DIVISION (Optional)
+
+Defines governance policies, regulations, and access controls for the program:
+
+```cobol
+GOVERNANCE DIVISION.
+    POLICY COMPLIANCE-POLICY FORMULA "G F (compress -> verify)".
+    REGULATION GDPR CLAUSE "Article 5 - Data minimization".
+    ACCESS-CONTROL USER "default" RESOURCE "data" ACTION "COMPRESS".
+    AUDIT-LEDGER "Program execution started".
+```
+
+**Governance Statements:**
+- `POLICY name FORMULA "ltl_formula"`: Define LTL policy formulas
+- `REGULATION standard CLAUSE "description"`: Reference regulatory requirements
+- `ACCESS-CONTROL USER "user" RESOURCE "resource" ACTION "action"`: Define access permissions
+- `AUDIT-LEDGER "message"`: Log audit messages
+- `DECISION-QUORUM VOTES "count" THRESHOLD "min"`: Set decision thresholds
+
+### 2.5 PROCEDURE DIVISION
 
 Contains executable statements and operations:
 
